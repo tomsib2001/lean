@@ -168,14 +168,14 @@ bool action::is_equal(action const & a) const {
     case action_kind::Exprs:
         return
             rbp() == a.rbp() &&
-            get_rec() == a.get_rec() &&
-            get_initial() == a.get_initial() &&
+            ::lean::is_equal(get_rec(), a.get_rec()) &&
+            ::lean::is_equal(get_initial(), a.get_initial()) &&
             get_terminator() == a.get_terminator() &&
             is_fold_right() == a.is_fold_right();
     case action_kind::ScopedExpr:
         return
             rbp() == a.rbp() &&
-            get_rec() == a.get_rec();
+            ::lean::is_equal(get_rec(), a.get_rec());
     }
     lean_unreachable(); // LCOV_EXCL_LINE
 }
@@ -331,7 +331,7 @@ parse_table parse_table::add_core(unsigned num, transition const * ts, expr cons
         if (!overload)
             r.m_ptr->m_accept = to_list(a);
         else
-            r.m_ptr->m_accept = cons(a, remove(r.m_ptr->m_accept, a));
+            r.m_ptr->m_accept = cons(a, filter(r.m_ptr->m_accept, [&](expr const & e) { return !is_equal(e, a); }));
     } else {
         auto * it = r.m_ptr->m_children.find(ts->get_token());
         parse_table new_child;

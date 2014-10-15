@@ -51,5 +51,5 @@ typedef std::unordered_set<expr_cell_pair, expr_cell_pair_hash, expr_cell_pair_e
 // =======================================
 
 // Similar to expr_set, but using structural equality
-typedef std::unordered_set<expr, expr_hash, std::equal_to<expr>> expr_struct_set;
+typedef std::unordered_set<expr, expr_hash, is_expr_equal_fn> expr_struct_set;
 }

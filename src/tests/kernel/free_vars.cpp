@@ -28,9 +28,9 @@ static void tst1() {
     lean_assert(!has_free_var(f(Var(1)), 0));
     lean_assert(has_free_var(f(Var(1)), 0, 2));
     lean_assert(!has_free_var(f(Var(1)), 0, 1));
-    lean_assert_eq(lower_free_vars(f(Var(1)), 1), f(Var(0)));
-    lean_assert_eq(lower_free_vars(mk_lambda("_", t, f(Var(2))), 1), mk_lambda("_", t, f(Var(1))));
-    lean_assert_eq(lower_free_vars(mk_lambda("_", t, f(Var(0))), 1), mk_lambda("_", t, f(Var(0))));
+    lean_assert(is_equal(lower_free_vars(f(Var(1)), 1), f(Var(0))));
+    lean_assert(is_equal(lower_free_vars(mk_lambda("_", t, f(Var(2))), 1), mk_lambda("_", t, f(Var(1)))));
+    lean_assert(is_equal(lower_free_vars(mk_lambda("_", t, f(Var(0))), 1), mk_lambda("_", t, f(Var(0)))));
 }
 
 static void tst2() {
@@ -66,11 +66,11 @@ static void tst4() {
     expr x = Local("x", B);
     expr y = Local("y", B);
     expr t = f(Fun({x, y}, f(x, y))(f(Var(1), Var(2))), x);
-    lean_assert_eq(lift_free_vars(t, 1, 2),
-                   f(Fun(x, Fun(y, f(x, y)))(f(Var(3), Var(4))), x));
-    lean_assert_eq(lift_free_vars(t, 0, 3),
-                   f(Fun(x, Fun(y, f(x, y)))(f(Var(4), Var(5))), x));
-    lean_assert_eq(lift_free_vars(t, 3, 2), t);
+    lean_assert(is_equal(lift_free_vars(t, 1, 2),
+                         f(Fun(x, Fun(y, f(x, y)))(f(Var(3), Var(4))), x)));
+    lean_assert(is_equal(lift_free_vars(t, 0, 3),
+                         f(Fun(x, Fun(y, f(x, y)))(f(Var(4), Var(5))), x)));
+    lean_assert(is_equal(lift_free_vars(t, 3, 2), t));
 }
 
 int main() {

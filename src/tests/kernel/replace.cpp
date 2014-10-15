@@ -38,16 +38,16 @@ static void tst2() {
     expr Type = mk_Type();
     expr r = mk_lambda("x", Type, mk_app({Var(0), Var(1), Var(2)}));
     std::cout << instantiate(r, Const("a")) << std::endl;
-    lean_assert(instantiate(r, Const("a")) == mk_lambda("x", Type, mk_app({Var(0), Const("a"), Var(1)})));
-    lean_assert(instantiate(instantiate(r, Const("a")), Const("b")) ==
-                mk_lambda("x", Type, mk_app({Var(0), Const("a"), Const("b")})));
+    lean_assert(is_equal(instantiate(r, Const("a")), mk_lambda("x", Type, mk_app({Var(0), Const("a"), Var(1)}))));
+    lean_assert(is_equal(instantiate(instantiate(r, Const("a")), Const("b")),
+                         mk_lambda("x", Type, mk_app({Var(0), Const("a"), Const("b")}))));
     std::cout << instantiate(binding_body(r), Const("a")) << std::endl;
-    lean_assert(instantiate(binding_body(r), Const("a")) == mk_app({Const("a"), Var(0), Var(1)}));
+    lean_assert(is_equal(instantiate(binding_body(r), Const("a")), mk_app({Const("a"), Var(0), Var(1)})));
     std::cout << instantiate(r, Var(10)) << std::endl;
-    lean_assert(instantiate(r, Var(10)) == mk_lambda("x", Type, mk_app({Var(0), Var(11), Var(1)})));
+    lean_assert(is_equal(instantiate(r, Var(10)), mk_lambda("x", Type, mk_app({Var(0), Var(11), Var(1)}))));
     std::cout << mk_pi("_", Var(3), Var(4)) << std::endl;
     std::cout << instantiate(mk_pi("_", Var(3), Var(4)), Var(0)) << std::endl;
-    lean_assert(instantiate(mk_pi("_", Var(3), Var(4)), Var(0)) == mk_pi("_", Var(2), Var(3)));
+    lean_assert(is_equal(instantiate(mk_pi("_", Var(3), Var(4)), Var(0)), mk_pi("_", Var(2), Var(3))));
 }
 
 class tracer {

@@ -340,7 +340,7 @@ static int expr_tostring(lua_State * L) {
     return push_string(L, out.str().c_str());
 }
 
-static int expr_is_equal(lua_State * L) { return push_boolean(L, to_expr(L, 1) == to_expr(L, 2)); }
+static int expr_is_equal(lua_State * L) { return push_boolean(L, is_equal(to_expr(L, 1), to_expr(L, 2))); }
 static int expr_is_bi_equal(lua_State * L) { return push_boolean(L, is_bi_equal(to_expr(L, 1), to_expr(L, 2))); }
 static int expr_lt(lua_State * L) { return push_boolean(L, to_expr(L, 1) < to_expr(L, 2)); }
 static int expr_mk_constant(lua_State * L) {
@@ -1006,7 +1006,6 @@ static void open_certified_declaration(lua_State * L) {
 
     SET_GLOBAL_FUN(certified_declaration_pred, "is_certified_declaration");
 }
-static bool operator!=(certified_declaration const &, certified_declaration const &) { return true; }
 DEFINE_LUA_LIST(certified_declaration, push_certified_declaration, to_certified_declaration)
 
 // Environment

@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 Author: Leonardo de Moura
 */
+#include "util/pair.h"
 #include "kernel/expr_eq_fn.h"
 
 #ifndef LEAN_EQ_CACHE_THRESHOLD
@@ -11,13 +12,13 @@ Author: Leonardo de Moura
 #endif
 
 namespace lean {
-bool expr_eq_fn::apply(expr const & a, expr const & b) {
-    if (is_eqp(a, b))          return true;
-    if (a.hash() != b.hash())  return false;
-    if (a.kind() != b.kind())  return false;
-    if (is_var(a))             return var_idx(a) == var_idx(b);
+bool expr_eq_fn::apply(expr_ptr a, expr_ptr b) {
+    if (is_eqp(a, b))            return true;
+    if (a->hash() != b->hash())  return false;
+    if (a->kind() != b->kind())  return false;
+    if (is_var(a))               return var_idx(a) == var_idx(b);
     if (m_counter >= LEAN_EQ_CACHE_THRESHOLD && is_shared(a) && is_shared(b)) {
-        auto p = std::make_pair(a.raw(), b.raw());
+        auto p = mk_pair(a, b);
         if (!m_eq_visited)
             m_eq_visited.reset(new expr_cell_pair_set);
         if (m_eq_visited->find(p) != m_eq_visited->end())
@@ -25,7 +26,7 @@ bool expr_eq_fn::apply(expr const & a, expr const & b) {
         m_eq_visited->insert(p);
     }
     check_system("expression equality test");
-    switch (a.kind()) {
+    switch (a->kind()) {
     case expr_kind::Var:
         lean_unreachable(); // LCOV_EXCL_LINE
     case expr_kind::Constant:

@@ -27,7 +27,7 @@ struct tactic_hint_config {
     typedef expr           entry;
 
     static void add_entry(environment const &, io_state const &, state & s, entry const & e) {
-        s = cons(e, filter(s, [&](expr const & e1) { return e1 != e; }));
+        s = cons(e, filter(s, [&](expr const & e1) { return !is_equal(e1, e); }));
     }
 
     static name const & get_class_name() {

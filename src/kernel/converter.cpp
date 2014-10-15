@@ -213,7 +213,7 @@ struct default_converter : public converter {
                 lean_assert(m <= num_args);
                 r = whnf_core(mk_rev_app(instantiate(binding_body(f), m, args.data() + (num_args - m)), num_args - m, args.data()), c);
             } else {
-                r = f == f0 ? e : whnf_core(mk_rev_app(f, args.size(), args.data()), c);
+                r = is_equal(f, f0) ? e : whnf_core(mk_rev_app(f, args.size(), args.data()), c);
             }
             break;
         }}
@@ -348,7 +348,7 @@ struct default_converter : public converter {
         buffer<expr> subst;
         do {
             optional<expr> var_s_type;
-            if (binding_domain(t) != binding_domain(s)) {
+            if (!is_equal(binding_domain(t), binding_domain(s))) {
                 var_s_type = instantiate_rev(binding_domain(s), subst.size(), subst.data());
                 expr var_t_type = instantiate_rev(binding_domain(t), subst.size(), subst.data());
                 if (!is_def_eq(var_t_type, *var_s_type, c, jst, cs))
@@ -400,7 +400,7 @@ struct default_converter : public converter {
 
     /** \brief This is an auxiliary method for is_def_eq. It handles the "easy cases". */
     lbool quick_is_def_eq(expr const & t, expr const & s, type_checker & c, delayed_justification & jst, constraint_seq & cs) {
-        if (t == s)
+        if (is_equal(t, s))
             return l_true; // t and s are structurally equal
         if (is_meta(t) || is_meta(s)) {
             // if t or s is a metavariable (or the application of a metavariable), then add constraint
@@ -622,7 +622,7 @@ struct default_converter : public converter {
     pair<bool, constraint_seq> is_prop(expr const & e, type_checker & c) {
         auto tcs = infer_type(c, e);
         auto wcs = whnf(tcs.first, c);
-        if (wcs.first == mk_Prop())
+        if (is_equal(wcs.first, mk_Prop()))
             return to_bcs(true, wcs.second + tcs.second);
         else
             return to_bcs(false);

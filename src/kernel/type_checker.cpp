@@ -393,7 +393,7 @@ pair<bool, constraint_seq> type_checker::is_def_eq_types(expr const & t, expr co
 pair<bool, constraint_seq> type_checker::is_prop(expr const & e) {
     auto tcs  = infer_type(e);
     auto wtcs = whnf(tcs.first);
-    bool r    = wtcs.first == mk_Prop();
+    bool r    = is_equal(wtcs.first, mk_Prop());
     if (r)
         return mk_pair(true, tcs.second + wtcs.second);
     else

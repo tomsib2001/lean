@@ -34,8 +34,8 @@ static void check_serializer(expr const & e) {
     deserializer d(in);
     expr n1, n2;
     d >> n1 >> n2;
-    lean_assert(e == n1);
-    lean_assert(e == n2);
+    lean_assert(is_equal(e, n1));
+    lean_assert(is_equal(e, n2));
     lean_assert(is_eqp(n1, n2));
 }
 
@@ -55,12 +55,12 @@ static void tst1() {
         scoped_expr_caching set(false);
         lean_assert(!is_eqp(fa, f(a)));
     }
-    lean_assert(fa(a) == f(a, a));
+    lean_assert(is_equal(fa(a), f(a, a)));
     std::cout << fa(fa, fa) << "\n";
     std::cout << mk_lambda("x", ty, Var(0)) << "\n";
-    lean_assert(f(a)(a) == f(a, a));
-    lean_assert(f(a(a)) != f(a, a));
-    lean_assert(mk_lambda("x", ty, Var(0)) == mk_lambda("y", ty, Var(0)));
+    lean_assert(is_equal(f(a)(a), f(a, a)));
+    lean_assert(!is_equal(f(a(a)), f(a, a)));
+    lean_assert(is_equal(mk_lambda("x", ty, Var(0)), mk_lambda("y", ty, Var(0))));
     std::cout << mk_pi("x", ty, Var(0)) << "\n";
 }
 
@@ -77,7 +77,7 @@ static expr mk_dag(unsigned depth, bool _closed = false) {
 static void tst2() {
     expr r1 = mk_dag(40);
     expr r2 = mk_dag(40);
-    lean_assert(r1 == r2);
+    lean_assert(is_equal(r1, r2));
     std::cout << get_weight(r1) << "\n";
     lean_assert(get_weight(r1) == std::numeric_limits<unsigned>::max());
 }
@@ -93,7 +93,7 @@ static void tst3() {
     expr f = Const("f");
     expr r1 = mk_big(f, 16, 0);
     expr r2 = mk_big(f, 16, 0);
-    lean_assert(r1 == r2);
+    lean_assert(is_equal(r1, r2));
     check_serializer(r1);
 }
 
@@ -144,12 +144,12 @@ static void tst5() {
         std::cout << r1 << std::endl;
         std::cout << "r2 = " << std::endl;
         std::cout << r2 << std::endl;
-        lean_assert(r1 == r2);
+        lean_assert(is_equal(r1, r2));
     }
     {
         expr r1 = mk_redundant_dag(f, 16);
         expr r2 = max_sharing(r1);
-        lean_assert(r1 == r2);
+        lean_assert(is_equal(r1, r2));
     }
 }
 
@@ -244,12 +244,13 @@ static void tst11() {
     expr Type = mk_Type();
     expr t = Type;
     std::cout << instantiate(mk_lambda("x", t, f(f(y, b), f(x, y))), f(a)) << "\n";
-    lean_assert(instantiate(mk_lambda("x", t, f(f(y, b), f(x, y))), f(a)) ==
-                mk_lambda("x", t, f(f(f(a), b), f(x, f(a)))));
+    lean_assert(is_equal(instantiate(mk_lambda("x", t, f(f(y, b), f(x, y))), f(a)),
+                         mk_lambda("x", t, f(f(f(a), b), f(x, f(a))))));
     std::cout << abstract(mk_lambda("x", t, f(a, mk_lambda("y", t, f(b, a)))), Const("a")) << "\n";
-    lean_assert(abstract(mk_lambda("x", t, f(a, mk_lambda("y", t, f(b, a)))), Const("a")) ==
-                mk_lambda("x", t, f(Var(1), mk_lambda("y", t, f(b, Var(2))))));
-    lean_assert(substitute(f(f(f(a))), f(a), b) == f(f(b)));
+    lean_assert(is_equal(abstract(mk_lambda("x", t, f(a, mk_lambda("y", t, f(b, a)))), Const("a")),
+                         mk_lambda("x", t, f(Var(1), mk_lambda("y", t, f(b, Var(2)))))));
+    lean_assert(is_equal(substitute(f(f(f(a))), f(a), b),
+                         f(f(b))));
 }
 
 static void tst12() {
@@ -259,7 +260,7 @@ static void tst12() {
     expr a1 = max_sharing(f(v, v));
     expr a2 = max_sharing(f(v, v));
     lean_assert(!is_eqp(a1, a2));
-    lean_assert(a1 == a2);
+    lean_assert(is_equal(a1, a2));
     max_sharing_fn M;
     lean_assert(is_eqp(M(f(v, v)), M(f(v, v))));
     lean_assert(is_eqp(M(a1), M(a2)));
@@ -272,7 +273,7 @@ static void tst13() {
     check_serializer(t0);
     check_serializer(t1);
     lean_assert(sort_level(t1) == mk_succ(mk_succ(level())));
-    lean_assert(t0 != t1);
+    lean_assert(!is_equal(t0, t1));
     std::cout << t0 << " " << t1 << "\n";
 }
 
@@ -312,7 +313,7 @@ static void check_copy(expr const & e) {
     scoped_expr_caching set(false);
     expr c = copy(e);
     lean_assert(!is_eqp(e, c));
-    lean_assert(e == c);
+    lean_assert(is_equal(e, c));
     check_serializer(e);
 }
 

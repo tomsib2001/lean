@@ -33,7 +33,7 @@ static void tst1() {
     auto env2 = add_decl(env1, mk_definition("Prop", level_param_names(), mk_Type(), mk_Prop()));
     lean_assert(!env1.find("Prop"));
     lean_assert(env2.find("Prop"));
-    lean_assert(env2.find("Prop")->get_value() == mk_Prop());
+    lean_assert(is_equal(env2.find("Prop")->get_value(), mk_Prop()));
     try {
         auto env3 = add_decl(env2, mk_definition("Prop", level_param_names(), mk_Type(), mk_Prop()));
         lean_unreachable();
@@ -74,12 +74,13 @@ static void tst1() {
     expr c  = mk_local("c", Prop);
     expr id = Const("id");
     type_checker checker(env3, name_generator("tmp"));
-    lean_assert(checker.check(id(Prop)).first == Prop >> Prop);
-    lean_assert(checker.whnf(id(Prop, c)).first == c);
-    lean_assert(checker.whnf(id(Prop, id(Prop, id(Prop, c)))).first == c);
+    lean_assert(is_equal(checker.check(id(Prop)).first, Prop >> Prop));
+    lean_assert(is_equal(checker.whnf(id(Prop, c)).first, c));
+    lean_assert(is_equal(checker.whnf(id(Prop, id(Prop, id(Prop, c)))).first, c));
 
     type_checker checker2(env2, name_generator("tmp"));
-    lean_assert(checker2.whnf(id(Prop, id(Prop, id(Prop, c)))).first == id(Prop, id(Prop, id(Prop, c))));
+    lean_assert(is_equal(checker2.whnf(id(Prop, id(Prop, id(Prop, c)))).first,
+                         id(Prop, id(Prop, id(Prop, c)))));
 }
 
 static void tst2() {
@@ -152,7 +153,7 @@ static void tst3() {
     expr a = Const("a");
     expr b = Const("b");
     type_checker checker(env, name_generator("tmp"));
-    lean_assert_eq(checker.whnf(proj1(proj1(mk(id(A, mk(a, b)), b)))).first, a);
+    lean_assert(is_equal(checker.whnf(proj1(proj1(mk(id(A, mk(a, b)), b)))).first, a));
 }
 
 class dummy_ext : public environment_extension {};

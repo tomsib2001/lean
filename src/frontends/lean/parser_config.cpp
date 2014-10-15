@@ -213,7 +213,10 @@ struct notation_config {
             if (!e.overload()) {
                 s.m_num_map.insert(e.get_num(), list<expr>(e.get_expr()));
             } else if (auto it = s.m_num_map.find(e.get_num())) {
-                list<expr> new_exprs = cons(e.get_expr(), filter(*it, [&](expr const & n) { return n != e.get_expr(); }));
+                list<expr> new_exprs = cons(e.get_expr(),
+                                            filter(*it, [&](expr const & n) {
+                                                    return !is_equal(n, e.get_expr());
+                                                }));
                 s.m_num_map.insert(e.get_num(), new_exprs);
             } else {
                 s.m_num_map.insert(e.get_num(), list<expr>(e.get_expr()));

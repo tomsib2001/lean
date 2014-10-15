@@ -9,7 +9,7 @@ Author: Leonardo de Moura
 
 namespace lean {
 bool occurs(expr const & n, expr const & m) {
-    return static_cast<bool>(find(m, [&](expr const & e, unsigned) { return n == e; }));
+    return static_cast<bool>(find(m, [&](expr const & e, unsigned) { return is_equal(n, e); }));
 }
 
 bool occurs(name const & n, expr const & m) {

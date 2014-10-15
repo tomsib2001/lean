@@ -19,7 +19,7 @@ expr abstract(expr const & e, unsigned s, unsigned n, expr const * subst) {
                 unsigned i = n;
                 while (i > 0) {
                     --i;
-                    if (subst[i] == e)
+                    if (is_equal(subst[i], e))
                         return some_expr(mk_var(offset + s + n - i - 1, e.get_tag()));
                 }
             }
@@ -63,7 +63,7 @@ public:
         m_abstract_types.resize(num, none_expr());
         bool matching = use_cache;
         for (unsigned i = 0; i < num; i++) {
-            if (!(matching && m_locals[i] && *m_locals[i] == locals[i])) {
+            if (!(matching && m_locals[i] && is_equal(*m_locals[i], locals[i]))) {
                 m_locals[i]         = locals[i];
                 m_abstract_types[i] = abstract_locals(mlocal_type(locals[i]), i, locals);
                 matching            = false;

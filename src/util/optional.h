@@ -140,11 +140,5 @@ public:                                                                 \
     optional& operator=(optional && other) { m_value = std::forward<P>(other.m_value); return *this; } \
     optional& operator=(P const & other) { m_value = other; return *this; } \
     optional& operator=(P && other) { m_value = std::forward<P>(other); return *this; } \
-    friend bool operator==(optional const & o1, optional const & o2) {  \
-        return static_cast<bool>(o1) == static_cast<bool>(o2) && (!o1 || o1.m_value == o2.m_value); \
-    }                                                                   \
-    friend bool operator!=(optional const & o1, optional const & o2) {  \
-        return !operator==(o1, o2);                                     \
-    }                                                                   \
 };
 }

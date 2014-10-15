@@ -136,13 +136,18 @@ environment environment::replace(certified_declaration const & t) const {
     name const & n = t.get_declaration().get_name();
     auto ax = find(n);
     if (!ax)
-        throw_kernel_exception(*this, "invalid replacement of axiom with theorem, the environment does not have an axiom with the given name");
+        throw_kernel_exception(*this, "invalid replacement of axiom with theorem, "
+                               "the environment does not have an axiom with the given name");
     if (!ax->is_axiom())
-        throw_kernel_exception(*this, "invalid replacement of axiom with theorem, the current declaration in the environment is not an axiom");
+        throw_kernel_exception(*this, "invalid replacement of axiom with theorem, "
+                               "the current declaration in the environment is not an axiom");
     if (!t.get_declaration().is_theorem())
-        throw_kernel_exception(*this, "invalid replacement of axiom with theorem, the new declaration is not a theorem");
-    if (ax->get_type() != t.get_declaration().get_type())
-        throw_kernel_exception(*this, "invalid replacement of axiom with theorem, the 'replace' operation can only be used when the axiom and theorem have the same type");
+        throw_kernel_exception(*this, "invalid replacement of axiom with theorem, "
+                               "the new declaration is not a theorem");
+    if (!is_equal(ax->get_type(), t.get_declaration().get_type()))
+        throw_kernel_exception(*this, "invalid replacement of axiom with theorem, "
+                               "the 'replace' operation can only be used when the "
+                               "axiom and theorem have the same type");
     return environment(m_header, m_id, insert(m_declarations, n, t.get_declaration()), m_global_levels, m_extensions);
 }
 

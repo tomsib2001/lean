@@ -19,7 +19,7 @@ bool is_lt(expr const & a, expr const & b, bool use_hash) {
         if (a.hash() < b.hash())         return true;
         if (a.hash() > b.hash())         return false;
     }
-    if (a == b)                          return false;
+    if (is_equal(a, b))                  return false;
     switch (a.kind()) {
     case expr_kind::Var:
         return var_idx(a) < var_idx(b);
@@ -29,12 +29,12 @@ bool is_lt(expr const & a, expr const & b, bool use_hash) {
         else
             return is_lt(const_levels(a), const_levels(b), use_hash);
     case expr_kind::App:
-        if (app_fn(a) != app_fn(b))
+        if (!is_equal(app_fn(a), app_fn(b)))
             return is_lt(app_fn(a), app_fn(b), use_hash);
         else
             return is_lt(app_arg(a), app_arg(b), use_hash);
     case expr_kind::Lambda: case expr_kind::Pi:
-        if (binding_domain(a) != binding_domain(b))
+        if (!is_equal(binding_domain(a), binding_domain(b)))
             return is_lt(binding_domain(a), binding_domain(b), use_hash);
         else
             return is_lt(binding_body(a), binding_body(b), use_hash);
@@ -51,7 +51,7 @@ bool is_lt(expr const & a, expr const & b, bool use_hash) {
         if (macro_num_args(a) != macro_num_args(b))
             return macro_num_args(a) < macro_num_args(b);
         for (unsigned i = 0; i < macro_num_args(a); i++) {
-            if (macro_arg(a, i) != macro_arg(b, i))
+            if (!is_equal(macro_arg(a, i), macro_arg(b, i)))
                 return is_lt(macro_arg(a, i), macro_arg(b, i), use_hash);
         }
         return false;

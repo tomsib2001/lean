@@ -229,7 +229,7 @@ static void collect_rhss(std::vector<calc_step> const & steps, buffer<expr> & rh
     for (auto const & step : steps) {
         calc_pred const & pred = step_pred(step);
         expr const & rhs  = pred_rhs(pred);
-        if (std::find(rhss.begin(), rhss.end(), rhs) == rhss.end())
+        if (std::find_if(rhss.begin(), rhss.end(), [&](expr const & r) { return is_equal(r, rhs); }) == rhss.end())
             rhss.push_back(rhs);
     }
     lean_assert(!rhss.empty());

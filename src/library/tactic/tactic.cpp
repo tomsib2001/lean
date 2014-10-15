@@ -255,7 +255,7 @@ tactic assumption_tactic() {
                     buffer<expr> locals;
                     get_app_args(g.get_meta(), locals);
                     for (auto const & l : locals) {
-                        if (mlocal_type(l) == t) {
+                        if (is_equal(mlocal_type(l), t)) {
                             h = l;
                             break;
                         }
@@ -303,7 +303,7 @@ tactic beta_tactic() {
             goals new_gs = map_goals(s, [&](goal const & g) -> optional<goal> {
                     expr new_meta = beta_reduce(g.get_meta());
                     expr new_type = beta_reduce(g.get_type());
-                    if (new_meta != g.get_meta() || new_type != g.get_type())
+                    if (!is_equal(new_meta, g.get_meta()) || !is_equal(new_type, g.get_type()))
                         reduced = true;
                     return some(goal(new_meta, new_type));
                 });
@@ -344,13 +344,13 @@ protected:
         expr const & f = get_app_fn(e);
         if (is_constant(f)) {
             expr new_f = visit(f);
-            bool modified = new_f != f;
+            bool modified = !is_equal(new_f, f);
             buffer<expr> new_args;
             get_app_args(e, new_args);
             for (unsigned i = 0; i < new_args.size(); i++) {
                 expr arg    = new_args[i];
                 new_args[i] = visit(arg);
-                if (!modified && new_args[i] != arg)
+                if (!modified && !is_equal(new_args[i], arg))
                     modified = true;
             }
             if (is_lambda(new_f)) {
@@ -412,7 +412,7 @@ optional<proof_state> unfold_tactic_core(unfold_core_fn & fn, proof_state const 
     goals new_gs = map_goals(s, [&](goal const & g) -> optional<goal> {
             expr new_meta = fn(g.get_meta());
             expr new_type = fn(g.get_type());
-            if (new_meta != g.get_meta() || new_type != g.get_type())
+            if (!is_equal(new_meta, g.get_meta()) || !is_equal(new_type, g.get_type()))
                 reduced = true;
             return some(goal(new_meta, new_type));
         });

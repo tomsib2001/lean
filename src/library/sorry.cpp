@@ -27,12 +27,12 @@ void finalize_sorry() {
 
 bool has_sorry(environment const & env) {
     auto decl = env.find(*g_sorry_name);
-    return decl && decl->get_type() == *g_sorry_type;
+    return decl && is_equal(decl->get_type(), *g_sorry_type);
 }
 
 environment declare_sorry(environment const & env) {
     if (auto decl = env.find(*g_sorry_name)) {
-        if (decl->get_type() != *g_sorry_type)
+        if (!is_equal(decl->get_type(), *g_sorry_type))
             throw exception("failed to declare 'sorry', environment already has an object named 'sorry'");
         return env;
     } else {

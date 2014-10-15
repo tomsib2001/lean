@@ -358,7 +358,7 @@ match_plugin mk_whnf_match_plugin(std::shared_ptr<type_checker> tc) {
             constraint_seq cs;
             expr p1 = tc->whnf(p, cs);
             expr t1 = tc->whnf(t, cs);
-            return !cs && (p1 != p || t1 != t) && ctx.match(p1, t1);
+            return !cs && (!is_equal(p1, p) || !is_equal(t1, t)) && ctx.match(p1, t1);
         } catch (exception&) {
             return false;
         }

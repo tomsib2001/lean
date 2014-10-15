@@ -182,7 +182,7 @@ unify_status unify_simple_core(substitution & s, expr const & lhs, expr const & 
 }
 
 unify_status unify_simple(substitution & s, expr const & lhs, expr const & rhs, justification const & j) {
-    if (lhs == rhs)
+    if (is_equal(lhs, rhs))
         return unify_status::Solved;
     else if (!has_metavar(lhs) && !has_metavar(rhs))
         return unify_status::Failed;
@@ -725,7 +725,7 @@ struct unifier_fn {
             // Example:  ?M := f (pr1 (pair 0 ?M))
             constraint_seq cs;
             expr rhs_whnf = whnf(rhs, relax, cs);
-            if (rhs != rhs_whnf && process_constraints(cs))
+            if (!is_equal(rhs, rhs_whnf) && process_constraints(cs))
                 return process_metavar_eq(lhs, rhs_whnf, j, relax);
         }
         switch (status) {
@@ -768,9 +768,12 @@ struct unifier_fn {
             auto rhs_jst = m_subst.instantiate_metavars(cnstr_rhs_expr(c));
             expr lhs = lhs_jst.first;
             expr rhs = rhs_jst.first;
-            if (lhs != cnstr_lhs_expr(c) || rhs != cnstr_rhs_expr(c)) {
+            if (!is_equal(lhs, cnstr_lhs_expr(c)) ||
+                !is_equal(rhs, cnstr_rhs_expr(c))) {
                 return mk_pair(mk_eq_cnstr(lhs, rhs,
-                                           mk_composite1(mk_composite1(c.get_justification(), lhs_jst.second), rhs_jst.second),
+                                           mk_composite1(mk_composite1(c.get_justification(),
+                                                                       lhs_jst.second),
+                                                         rhs_jst.second),
                                            relax_main_opaque(c)),
                                true);
             }
@@ -794,7 +797,7 @@ struct unifier_fn {
         justification const & jst = c.get_justification();
         bool relax = relax_main_opaque(c);
 
-        if (lhs == rhs)
+        if (is_equal(lhs, rhs))
             return Solved; // trivial constraint
 
         // Update justification using the justification of the instantiated metavariables
@@ -837,7 +840,7 @@ struct unifier_fn {
         while (i > 0) {
             --i;
             expr new_arg = instantiate_meta(args[i], j);
-            if (new_arg != args[i]) {
+            if (!is_equal(new_arg, args[i])) {
                 modified = true;
                 args[i]  = new_arg;
             }
@@ -851,12 +854,16 @@ struct unifier_fn {
         justification j = c.get_justification();
         expr lhs = instantiate_meta(cnstr_lhs_expr(c), j);
         expr rhs = instantiate_meta(cnstr_rhs_expr(c), j);
-        if (lhs != cnstr_lhs_expr(c) || rhs != cnstr_rhs_expr(c))
+        if (!is_equal(lhs, cnstr_lhs_expr(c)) ||
+            !is_equal(rhs, cnstr_rhs_expr(c))) {
             return is_def_eq(lhs, rhs, j, relax_main_opaque(c)) ? Solved : Failed;
+        }
         lhs = instantiate_meta_args(lhs, j);
         rhs = instantiate_meta_args(rhs, j);
-        if (lhs != cnstr_lhs_expr(c) || rhs != cnstr_rhs_expr(c))
+        if (!is_equal(lhs, cnstr_lhs_expr(c)) ||
+            !is_equal(rhs, cnstr_rhs_expr(c))) {
             return is_def_eq(lhs, rhs, j, relax_main_opaque(c)) ? Solved : Failed;
+        }
         return Continue;
     }
 
@@ -1033,7 +1040,7 @@ struct unifier_fn {
             }
             // Try to instantiate metavariables in type
             pair<expr, justification> type_jst = m_subst.instantiate_metavars(type);
-            if (type_jst.first != type) {
+            if (!is_equal(type_jst.first, type)) {
                 // Type was modified by instantiation,
                 // we update the constraint justification,
                 // and store the new type in m_type_map
@@ -1849,7 +1856,7 @@ struct unifier_fn {
             expr const & f = get_app_fn(rhs);
             if (!is_local(f) && !is_constant(f)) {
                 if (auto new_rhs = expand_rhs(rhs, relax)) {
-                    lean_assert(*new_rhs != rhs);
+                    lean_assert(!is_equal(*new_rhs, rhs));
                     return is_def_eq(lhs, *new_rhs, j, relax);
                 } else {
                     return false;
@@ -1857,7 +1864,7 @@ struct unifier_fn {
             }
         } else if (is_macro(rhs)) {
             if (auto new_rhs = expand_rhs(rhs, relax)) {
-                lean_assert(*new_rhs != rhs);
+                lean_assert(!is_equal(*new_rhs, rhs));
                 return is_def_eq(lhs, *new_rhs, j, relax);
             } else {
                 return false;
@@ -1871,7 +1878,7 @@ struct unifier_fn {
         append_auxiliary_constraints(alts, to_list(aux.begin(), aux.end()));
         if (use_flex_rigid_whnf_split(lhs, rhs)) {
             expr rhs_whnf = flex_rigid_whnf(rhs, j, relax, aux);
-            if (rhs_whnf != rhs) {
+            if (!is_equal(rhs_whnf, rhs)) {
                 if (is_meta(rhs_whnf)) {
                     // it become a flex-flex constraint
                     alts.push_back(constraints(mk_eq_cnstr(lhs, rhs_whnf, j, relax)));
@@ -1935,7 +1942,7 @@ struct unifier_fn {
         buffer<expr> lhs_args, rhs_args;
         expr ml = get_app_args(lhs, lhs_args);
         expr mr = get_app_args(rhs, rhs_args);
-        if (ml == mr || lhs_args.size() != rhs_args.size()) {
+        if (is_equal(ml, mr) || lhs_args.size() != rhs_args.size()) {
             discard(c);
             return true;
         }

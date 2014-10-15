@@ -17,7 +17,7 @@ namespace lean {
    shared sub-expressions.
 */
 struct max_sharing_fn::imp {
-    typedef typename std::unordered_set<expr, expr_hash, is_bi_equal_proc> expr_cache;
+    typedef typename std::unordered_set<expr, expr_hash, is_expr_bi_equal_fn> expr_cache;
 
     expr_cache m_cache;
 

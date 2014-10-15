@@ -95,6 +95,8 @@ private:
     friend class expr_cell;
     expr_cell * steal_ptr() { expr_cell * r = m_ptr; m_ptr = nullptr; return r; }
     friend class optional<expr>;
+    bool operator==(expr const & other) const;
+    bool operator!=(expr const & other) const;
 public:
     explicit expr(expr_ptr ptr):m_ptr(ptr) { if (m_ptr) m_ptr->inc_ref(); }
 
@@ -142,7 +144,6 @@ public:
                            tag g);
     friend expr mk_macro(macro_definition const & m, unsigned num, expr const * args, tag g);
 
-    friend bool is_eqp(expr_ptr a, expr_ptr b) { return a == b; }
     // Overloaded operator() can be used to create applications
     expr operator()(expr_ptr a1, tag g = nulltag) const;
     expr operator()(expr_ptr a1, expr_ptr a2, tag g = nulltag) const;
@@ -162,17 +163,22 @@ public:
 
 expr copy_tag(expr const & e, expr && new_e);
 
+inline bool is_eqp(expr_ptr a, expr_ptr b) { return a == b; }
+
 // =======================================
 // Structural equality
 /** \brief Binder information is ignored in the following predicate */
-bool operator==(expr const & a, expr const & b);
-inline bool operator!=(expr const & a, expr const & b) { return !operator==(a, b); }
-/** \brief Similar to ==, but it also compares binder information */
+// bool operator==(expr const & a, expr const & b);
+// inline bool operator!=(expr const & a, expr const & b) { return !operator==(a, b); }
+bool is_equal(expr const & a, expr const & b);
+struct is_expr_equal_fn { bool operator()(expr const & e1, expr const & e2) const { return is_equal(e1, e2); } };
+/** \brief Similar to is_equal, but it also compares binder information */
 bool is_bi_equal(expr const & a, expr const & b);
-struct is_bi_equal_proc { bool operator()(expr const & e1, expr const & e2) const { return is_bi_equal(e1, e2); } };
+struct is_expr_bi_equal_fn { bool operator()(expr const & e1, expr const & e2) const { return is_bi_equal(e1, e2); } };
 // =======================================
 
 SPECIALIZE_OPTIONAL_FOR_SMART_PTR(expr)
+bool is_equal(optional<expr> const & a, optional<expr> const & b);
 
 inline optional<expr> none_expr() { return optional<expr>(); }
 inline optional<expr> some_expr(expr const & e) { return optional<expr>(e); }

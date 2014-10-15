@@ -40,7 +40,7 @@ public:
     void erase(head_index const & h) { m_map.erase(h); }
     void erase_entry(head_index const & h, V const & v) {
         if (auto it = m_map.find(h)) {
-            auto new_vs = filter(*it, [&](V const & v2) { return v != v2; });
+            auto new_vs = filter(*it, [&](V const & v2) { return !is_equal(v, v2); });
             if (!new_vs)
                 m_map.erase(h);
             else
@@ -49,7 +49,7 @@ public:
     }
     void insert(head_index const & h, V const & v) {
         if (auto it = m_map.find(h))
-            m_map.insert(h, cons(v, filter(*it, [&](V const & v2) { return v != v2; })));
+            m_map.insert(h, cons(v, filter(*it, [&](V const & v2) { return !is_equal(v, v2); })));
         else
             m_map.insert(h, to_list(v));
     }

@@ -40,11 +40,11 @@ bool has_num_decls(environment const & env) {
     try {
         type_checker tc(env);
         return
-            tc.infer(*g_zero).first == *g_num &&
-            tc.infer(*g_pos).first  == mk_arrow(*g_pos_num, *g_num) &&
-            tc.infer(*g_one).first  == *g_pos_num &&
-            tc.infer(*g_bit0).first == mk_arrow(*g_pos_num, *g_pos_num) &&
-            tc.infer(*g_bit1).first == mk_arrow(*g_pos_num, *g_pos_num);
+            is_equal(tc.infer(*g_zero).first, *g_num) &&
+            is_equal(tc.infer(*g_pos).first, mk_arrow(*g_pos_num, *g_num)) &&
+            is_equal(tc.infer(*g_one).first, *g_pos_num) &&
+            is_equal(tc.infer(*g_bit0).first, mk_arrow(*g_pos_num, *g_pos_num)) &&
+            is_equal(tc.infer(*g_bit1).first, mk_arrow(*g_pos_num, *g_pos_num));
     } catch (...) {
         return false;
     }
@@ -72,13 +72,13 @@ expr from_num(mpz const & n) {
 }
 
 optional<mpz> to_pos_num(expr const & e) {
-    if (e == *g_one) {
+    if (is_equal(e, *g_one)) {
         return some(mpz(1));
     } else if (is_app(e)) {
-        if (app_fn(e) == *g_bit0) {
+        if (is_equal(app_fn(e), *g_bit0)) {
             if (auto r = to_pos_num(app_arg(e)))
                 return some(2*(*r));
-        } else if (app_fn(e) == *g_bit1) {
+        } else if (is_equal(app_fn(e), *g_bit1)) {
             if (auto r = to_pos_num(app_arg(e)))
                 return some(2*(*r) + 1);
         }
@@ -87,9 +87,9 @@ optional<mpz> to_pos_num(expr const & e) {
 }
 
 optional<mpz> to_num(expr const & e) {
-    if (e == *g_zero)
+    if (is_equal(e, *g_zero))
         return some(mpz(0));
-    else if (is_app(e) && app_fn(e) == *g_pos)
+    else if (is_app(e) && is_equal(app_fn(e), *g_pos))
         return to_pos_num(app_arg(e));
     else
         return optional<mpz>();

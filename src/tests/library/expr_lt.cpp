@@ -11,7 +11,7 @@ using namespace lean;
 
 static void lt(expr const & e1, expr const & e2, bool expected) {
     lean_assert(is_lt(e1, e2, false) == expected);
-    lean_assert(is_lt(e1, e2, false) == !(e1 == e2 || (is_lt(e2, e1, false))));
+    lean_assert(is_lt(e1, e2, false) == !(is_equal(e1, e2) || (is_lt(e2, e1, false))));
 }
 
 static void tst1() {

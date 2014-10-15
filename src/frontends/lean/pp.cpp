@@ -265,7 +265,7 @@ auto pretty_fn::pp_var(expr const & e) -> result {
 }
 
 auto pretty_fn::pp_sort(expr const & e) -> result {
-    if (m_env.impredicative() && e == mk_Prop()) {
+    if (m_env.impredicative() && is_equal(e, mk_Prop())) {
         return mk_result(format("Prop"));
     } else if (m_universes) {
         return mk_result(group(format("Type.{") + nest(6, pp_level(sort_level(e))) + format("}")));
@@ -397,7 +397,7 @@ format pretty_fn::pp_binders(buffer<expr> const & locals) {
     format r;
     for (unsigned i = 1; i < num; i++) {
         expr local = locals[i];
-        if (mlocal_type(local) == type && local_info(local) == bi) {
+        if (is_equal(mlocal_type(local), type) && local_info(local) == bi) {
             names.push_back(local_pp_name(local));
         } else {
             r += group(compose(line(), pp_binder_block(names, type, bi)));

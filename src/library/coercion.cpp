@@ -90,7 +90,7 @@ struct coercion_state {
             }
             if (it == end)
                 m_from.insert(C, cons(from_data(D, f, f_type), *it1));
-            else if (std::get<1>(*it) != f)
+            else if (!is_equal(std::get<1>(*it), f))
                 ios.get_diagnostic_channel() << "replacing the coercion from '" << C << "' to '" << D << "'\n";
         }
         auto it2 = m_to.find(D);

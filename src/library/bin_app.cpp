@@ -8,7 +8,7 @@ Author: Leonardo de Moura
 
 namespace lean {
 bool is_bin_app(expr const & t, expr const & f) {
-    return is_app(t) && is_app(app_fn(t)) && app_fn(app_fn(t)) == f;
+    return is_app(t) && is_app(app_fn(t)) && is_equal(app_fn(app_fn(t)), f);
 }
 
 bool is_bin_app(expr const & t, expr const & f, expr & lhs, expr & rhs) {

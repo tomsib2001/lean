@@ -122,13 +122,16 @@ void finalize_string() {
 
 bool has_string_decls(environment const & env) {
     try {
+        expr B = *g_bool;
+        expr C = *g_char;
         type_checker tc(env);
         return
-            tc.infer(*g_ff).first    == *g_bool &&
-            tc.infer(*g_tt).first    == *g_bool &&
-            tc.infer(*g_ascii).first == *g_bool >> (*g_bool >> (*g_bool >> (*g_bool >> (*g_bool >> (*g_bool >> (*g_bool >> (*g_bool >> *g_char))))))) &&
-            tc.infer(*g_empty).first == *g_string &&
-            tc.infer(*g_str).first   == *g_char >> (*g_string >> *g_string);
+            is_equal(tc.infer(*g_ff).first, B) &&
+            is_equal(tc.infer(*g_tt).first, B) &&
+            is_equal(tc.infer(*g_ascii).first,
+                     B >> (B >> (B >> (B >> (B >> (B >> (B >> (B >> C)))))))) &&
+            is_equal(tc.infer(*g_empty).first, *g_string) &&
+            is_equal(tc.infer(*g_str).first, C >> (*g_string >> *g_string));
     } catch (exception &) {
         return false;
     }
@@ -161,13 +164,13 @@ expr from_string(std::string const & s) {
 
 bool to_char_core(expr const & e, buffer<char> & tmp) {
     buffer<expr> args;
-    if (get_app_rev_args(e, args) == *g_ascii && args.size() == 8) {
+    if (is_equal(get_app_rev_args(e, args), *g_ascii) && args.size() == 8) {
         unsigned v = 0;
         for (unsigned i = 0; i < args.size(); i++) {
             v *= 2;
-            if (args[i] == *g_tt)
+            if (is_equal(args[i], *g_tt))
                 v++;
-            else if (args[i] != *g_ff)
+            else if (!is_equal(args[i], *g_ff))
                 return false;
         }
         tmp.push_back(v);
@@ -178,12 +181,12 @@ bool to_char_core(expr const & e, buffer<char> & tmp) {
 }
 
 bool to_string_core(expr const & e, buffer<char> & tmp) {
-    if (e == *g_empty) {
+    if (is_equal(e, *g_empty)) {
         return true;
     } else {
         buffer<expr> args;
         return
-            get_app_args(e, args) == *g_str &&
+            is_equal(get_app_args(e, args), *g_str) &&
             args.size() == 2 &&
             to_char_core(args[0], tmp) &&
             to_string_core(args[1], tmp);

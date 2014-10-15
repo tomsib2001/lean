@@ -325,7 +325,7 @@ struct add_inductive_fn {
         if (!is_def_eq(I, m_it_consts[d_idx]) || args.size() != m_it_num_args[d_idx])
             return false;
         for (unsigned i = 0; i < m_num_params; i++) {
-            if (m_param_consts[i] != args[i])
+            if (!is_equal(m_param_consts[i], args[i]))
                 return false;
         }
         return true;

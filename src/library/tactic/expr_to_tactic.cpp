@@ -51,10 +51,10 @@ bool has_tactic_decls(environment const & env) {
     try {
         type_checker tc(env);
         return
-            tc.infer(*g_builtin_tac).first     == *g_tac_type &&
-            tc.infer(*g_and_then_tac_fn).first == *g_tac_type >> (*g_tac_type >> *g_tac_type) &&
-            tc.infer(*g_or_else_tac_fn).first  == *g_tac_type >> (*g_tac_type >> *g_tac_type) &&
-            tc.infer(*g_repeat_tac_fn).first   == *g_tac_type >> *g_tac_type;
+            is_equal(tc.infer(*g_builtin_tac).first, *g_tac_type) &&
+            is_equal(tc.infer(*g_and_then_tac_fn).first, *g_tac_type >> (*g_tac_type >> *g_tac_type)) &&
+            is_equal(tc.infer(*g_or_else_tac_fn).first, *g_tac_type >> (*g_tac_type >> *g_tac_type)) &&
+            is_equal(tc.infer(*g_repeat_tac_fn).first, *g_tac_type >> *g_tac_type);
     } catch (exception &) {
         return false;
     }
@@ -161,7 +161,7 @@ static void throw_failed(expr const & e) {
 static bool is_builtin_tactic(expr const & v) {
     if (is_lambda(v))
         return is_builtin_tactic(binding_body(v));
-    else if (v == *g_builtin_tac)
+    else if (is_equal(v, *g_builtin_tac))
         return true;
     else
         return false;

@@ -309,7 +309,7 @@ expr_macro::~expr_macro() {
 // Constructors
 
 #ifdef LEAN_CACHE_EXPRS
-typedef lru_cache<expr, expr_hash, is_bi_equal_proc> expr_cache;
+typedef lru_cache<expr, expr_hash, is_expr_bi_equal_fn> expr_cache;
 LEAN_THREAD_VALUE(bool, g_expr_cache_enabled, true);
 MK_THREAD_LOCAL_GET(expr_cache, get_expr_cache, LEAN_INITIAL_EXPR_CACHE_CAPACITY);
 bool enable_expr_caching(bool f) {
@@ -563,8 +563,11 @@ unsigned get_weight(expr_ptr e) {
     lean_unreachable(); // LCOV_EXCL_LINE
 }
 
-bool operator==(expr const & a, expr const & b) { return expr_eq_fn()(a, b); }
+bool is_equal(expr const & a, expr const & b) { return expr_eq_fn()(a, b); }
 bool is_bi_equal(expr const & a, expr const & b) { return expr_eq_fn(true)(a, b); }
+bool is_equal(optional<expr> const & a, optional<expr> const & b) {
+    return static_cast<bool>(a) == static_cast<bool>(b) && (!a || is_equal(*a, *b));
+}
 
 expr copy_tag(expr const & e, expr && new_e) {
     tag t = e.get_tag();

@@ -22,7 +22,7 @@ static void tst1() {
     expr x = Local("x", Prop);
     expr l1 = Fun(x, x);
     expr l2 = Fun(x, f(x));
-    lean_assert(l1 != l2);
+    lean_assert(!is_equal(l1, l2));
     lean_assert(map.empty());
     map.insert(a, a);
     lean_assert(map.contains(a));

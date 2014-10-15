@@ -21,11 +21,11 @@ class expr_eq_fn {
     // to create the cache.
     unsigned m_counter;
     std::unique_ptr<expr_cell_pair_set> m_eq_visited;
-    bool apply(expr const & a, expr const & b);
+    bool apply(expr_ptr a, expr_ptr b);
 public:
     /** \brief If \c is true, then functional object will also compare binder information attached to lambda and Pi expressions */
     expr_eq_fn(bool c = false):m_compare_binder_info(c), m_counter(0) {}
-    bool operator()(expr const & a, expr const & b) { m_counter = 0; return apply(a, b); }
+    bool operator()(expr_ptr a, expr_ptr b) { m_counter = 0; return apply(a, b); }
     void clear() { m_eq_visited.reset(); }
 };
 }
