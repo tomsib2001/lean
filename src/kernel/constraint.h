@@ -13,6 +13,8 @@ Author: Leonardo de Moura
 #include "kernel/level.h"
 
 namespace lean {
+class expr_cell;
+typedef expr_cell * expr_ptr;
 class expr;
 class justification;
 class substitution;
@@ -77,9 +79,9 @@ public:
     friend bool is_eqp(constraint const & c1, constraint const & c2) { return c1.m_ptr == c2.m_ptr; }
     friend void swap(constraint & l1, constraint & l2) { std::swap(l1, l2); }
 
-    friend constraint mk_eq_cnstr(expr const & lhs, expr const & rhs, justification const & j, bool relax_main_opaque);
+    friend constraint mk_eq_cnstr(expr_ptr lhs, expr_ptr rhs, justification const & j, bool relax_main_opaque);
     friend constraint mk_level_eq_cnstr(level const & lhs, level const & rhs, justification const & j);
-    friend constraint mk_choice_cnstr(expr const & m, choice_fn const & fn, delay_factor const & f, bool owner,
+    friend constraint mk_choice_cnstr(expr_ptr m, choice_fn const & fn, delay_factor const & f, bool owner,
                                       justification const & j, bool relax_main_opaque);
 
     constraint_cell * raw() const { return m_ptr; }
@@ -91,7 +93,7 @@ inline bool operator!=(constraint const & c1, constraint const & c2) { return !(
 /** \brief Create a unification constraint lhs =?= rhs
     If \c relax_main_opaque is true, then opaque definitions from the main module are treated as transparent.
 */
-constraint mk_eq_cnstr(expr const & lhs, expr const & rhs, justification const & j, bool relax_main_opaque);
+constraint mk_eq_cnstr(expr_ptr lhs, expr_ptr rhs, justification const & j, bool relax_main_opaque);
 constraint mk_level_eq_cnstr(level const & lhs, level const & rhs, justification const & j);
 
 /** \brief Create a "choice" constraint m in fn(...), where fn produces a stream of possible solutions.
@@ -103,7 +105,7 @@ constraint mk_level_eq_cnstr(level const & lhs, level const & rhs, justification
     If \c relax_main_opaque is true, then it signs that constraint was created in a context where
     opaque constants of the main module can be treated as transparent.
 */
-constraint mk_choice_cnstr(expr const & m, choice_fn const & fn, delay_factor const & f,
+constraint mk_choice_cnstr(expr_ptr m, choice_fn const & fn, delay_factor const & f,
                            bool owner, justification const & j, bool relax_main_opaque);
 
 inline bool is_eq_cnstr(constraint const & c) { return c.kind() == constraint_kind::Eq; }

@@ -23,7 +23,7 @@ struct constraint_cell {
 struct eq_constraint_cell : public constraint_cell {
     expr m_lhs;
     expr m_rhs;
-    eq_constraint_cell(expr const & lhs, expr const & rhs, justification const & j, bool relax):
+    eq_constraint_cell(expr_ptr lhs, expr_ptr rhs, justification const & j, bool relax):
         constraint_cell(constraint_kind::Eq, j, relax),
         m_lhs(lhs), m_rhs(rhs) {}
 };
@@ -39,7 +39,7 @@ struct choice_constraint_cell : public constraint_cell {
     choice_fn    m_fn;
     delay_factor m_delay_factor;
     bool         m_owner;
-    choice_constraint_cell(expr const & e, choice_fn const & fn, delay_factor const & f,
+    choice_constraint_cell(expr_ptr e, choice_fn const & fn, delay_factor const & f,
                            bool owner, justification const & j, bool relax):
         constraint_cell(constraint_kind::Choice, j, relax),
         m_expr(e), m_fn(fn), m_delay_factor(f), m_owner(owner) {}
@@ -65,13 +65,13 @@ constraint & constraint::operator=(constraint && c) { LEAN_MOVE_REF(c); }
 constraint_kind constraint::kind() const { lean_assert(m_ptr); return m_ptr->m_kind; }
 justification const & constraint::get_justification() const { lean_assert(m_ptr); return m_ptr->m_jst; }
 
-constraint mk_eq_cnstr(expr const & lhs, expr const & rhs, justification const & j, bool relax_main_opaque) {
+constraint mk_eq_cnstr(expr_ptr lhs, expr_ptr rhs, justification const & j, bool relax_main_opaque) {
     return constraint(new eq_constraint_cell(lhs, rhs, j, relax_main_opaque));
 }
 constraint mk_level_eq_cnstr(level const & lhs, level const & rhs, justification const & j) {
     return constraint(new level_constraint_cell(lhs, rhs, j));
 }
-constraint mk_choice_cnstr(expr const & m, choice_fn const & fn, delay_factor const & f,
+constraint mk_choice_cnstr(expr_ptr m, choice_fn const & fn, delay_factor const & f,
                            bool owner, justification const & j, bool relax_main_opaque) {
     lean_assert(is_meta(m));
     return constraint(new choice_constraint_cell(m, fn, f, owner, j, relax_main_opaque));
