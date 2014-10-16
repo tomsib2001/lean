@@ -61,9 +61,8 @@ list<T> reverse(list<T> const & l) {
     }
 }
 
-/**
-   \brief Return two lists \c l1 and \c l2 of approximately the same size s.t.
-   <tt>append(l1, l2) == l</tt>
+/** \brief Return two lists \c l1 and \c l2 of approximately the same size s.t.
+    <tt>append(l1, l2) == l</tt>
 */
 template<typename T>
 pair<list<T>, list<T>> split(list<T> const & l) {
@@ -82,9 +81,8 @@ pair<list<T>, list<T>> split(list<T> const & l) {
     }
 }
 
-/**
-   \brief Return two lists \c l1 and \c l2 of approximately the same size s.t.
-   <tt>append(l1, reverse(l2)) == l</tt>
+/** \brief Return two lists \c l1 and \c l2 of approximately the same size s.t.
+    <tt>append(l1, reverse(l2)) == l</tt>
 */
 template<typename T>
 pair<list<T>, list<T>> split_reverse_second(list<T> const & l) {
@@ -143,9 +141,8 @@ list<T> map(list<T> const & l, F && f) {
     return map2<T, T, F>(l, std::move(f));
 }
 
-/**
-   \brief Filter/Remove elements from the list
-   that do not satisfy the given predicate.
+/** \brief Filter/Remove elements from the list
+    that do not satisfy the given predicate.
 */
 template<typename T, typename P>
 list<T> filter(list<T> const & l, P && p) {
@@ -199,12 +196,11 @@ list<T> remove_last(list<T> const & l, P && p) {
     return l;
 }
 
-/**
-   \brief Similar to \c map but \c f has signature
+/** \brief Similar to \c map but \c f has signature
 
        <tt>bool f(T const & in, T & out)</tt>
 
-   If \c out becomes part of the result iff \c f returns true.
+    If \c out becomes part of the result iff \c f returns true.
 */
 template<typename To, typename From, typename F>
 list<To> map_filter(list<From> const & l, F && f) {
@@ -237,9 +233,8 @@ list<T> map_append(list<T> const & l, F && f) {
     }
 }
 
-/**
-   \brief Semantically equivalent to \c map, but it tries to reuse
-   list cells. The elements are compared using the predicate \c eq.
+/** \brief Semantically equivalent to \c map, but it tries to reuse
+    list cells. The elements are compared using the predicate \c eq.
 */
 template<typename T, typename F, typename Eq = std::equal_to<T>>
 list<T> map_reuse(list<T> const & l, F && f, Eq const & eq = Eq()) {
@@ -284,17 +279,7 @@ void for_each(list<T> const & l, F && f) {
 /** \brief Compare two lists using the binary predicate p. */
 template<typename T, typename P>
 bool compare(list<T> const & l1, list<T> const & l2, P && p) {
-    static_assert(std::is_same<typename std::result_of<P(T const &, T const &)>::type, bool>::value,
-                  "compare: return type of f is not bool");
-    auto it1 = l1.begin();
-    auto it2 = l2.begin();
-    auto end1 = l1.end();
-    auto end2 = l2.end();
-    for (; it1 != end1 && it2 != end2; ++it1, ++it2) {
-        if (!p(*it1, *it2))
-            return false;
-    }
-    return it1 == end1 && it2 == end2;
+    return l1.is_equal(l2, p);
 }
 
 /** \brief Return the i-th element of the list */

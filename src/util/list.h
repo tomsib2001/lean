@@ -7,6 +7,7 @@ Author: Leonardo de Moura
 #pragma once
 #include <iostream>
 #include <iterator>
+#include <functional>
 #include "util/rc.h"
 #include "util/debug.h"
 #include "util/optional.h"
@@ -99,19 +100,21 @@ public:
     }
 
     /** \brief Structural equality. */
-    friend bool operator==(list const & l1, list const & l2) {
-        cell * it1 = l1.m_ptr;
+    template<typename P = std::equal_to<T>>
+    bool is_equal(list const & l2, P const & p = P()) const {
+        cell * it1 = m_ptr;
         cell * it2 = l2.m_ptr;
         while (it1 != nullptr && it2 != nullptr) {
             if (it1 == it2)
                 return true;
-            if (it1->m_head != it2->m_head)
+            if (!p(it1->m_head, it2->m_head))
                 return false;
             it1 = it1->m_tail.m_ptr;
             it2 = it2->m_tail.m_ptr;
         }
         return it1 == nullptr && it2 == nullptr;
     }
+    friend bool operator==(list const & l1, list const & l2) { return l1.is_equal(l2); }
     friend bool operator!=(list const & l1, list const & l2) { return !(l1 == l2); }
 
     /** \brief List iterator object. */
