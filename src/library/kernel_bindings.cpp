@@ -93,7 +93,7 @@ static int level_tostring(lua_State * L) {
     return 1;
 }
 
-static int level_eq(lua_State * L) { return push_boolean(L, to_level(L, 1) == to_level(L, 2)); }
+static int level_eq(lua_State * L) { return push_boolean(L, is_equal(to_level(L, 1), to_level(L, 2))); }
 static int level_lt(lua_State * L) {
     int nargs = lua_gettop(L);
     return push_boolean(L, is_lt(to_level(L, 1), to_level(L, 2), nargs == 3 && lua_toboolean(L, 3)));

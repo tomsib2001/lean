@@ -7,6 +7,7 @@ Author: Leonardo de Moura
 #include <algorithm>
 #include <limits>
 #include <vector>
+#include "util/list.h"
 #include "kernel/free_vars.h"
 #include "kernel/replace_fn.h"
 #include "kernel/declaration.h"
@@ -192,7 +193,7 @@ public:
             std::tie(d_c, ls_c, r_c) = *it;
             if (!is_eqp(d_c, d))
                 return none_expr();
-            if (ls == ls_c)
+            if (compare(ls, ls_c, is_level_equal_fn()))
                 return some_expr(r_c);
             else
                 return none_expr();

@@ -32,7 +32,8 @@ bool expr_eq_fn::apply(expr_ptr a, expr_ptr b) {
     case expr_kind::Constant:
         return
             const_name(a) == const_name(b) &&
-            compare(const_levels(a), const_levels(b), [](level const & l1, level const & l2) { return l1 == l2; });
+            compare(const_levels(a), const_levels(b),
+                    [](level const & l1, level const & l2) { return is_equal(l1, l2); });
     case expr_kind::Meta:
         return
             mlocal_name(a) == mlocal_name(b) &&
@@ -55,7 +56,7 @@ bool expr_eq_fn::apply(expr_ptr a, expr_ptr b) {
             apply(binding_body(a), binding_body(b)) &&
             (!m_compare_binder_info || binding_info(a) == binding_info(b));
     case expr_kind::Sort:
-        return sort_level(a) == sort_level(b);
+        return is_equal(sort_level(a), sort_level(b));
     case expr_kind::Macro:
         m_counter++;
         if (macro_def(a) != macro_def(b) || macro_num_args(a) != macro_num_args(b))

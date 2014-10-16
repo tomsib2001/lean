@@ -272,7 +272,7 @@ static void tst13() {
     expr t1 = mk_sort(mk_succ(mk_succ(level())));
     check_serializer(t0);
     check_serializer(t1);
-    lean_assert(sort_level(t1) == mk_succ(mk_succ(level())));
+    lean_assert(is_equal(sort_level(t1), mk_succ(mk_succ(level()))));
     lean_assert(!is_equal(t0, t1));
     std::cout << t0 << " " << t1 << "\n";
 }

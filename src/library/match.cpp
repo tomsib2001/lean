@@ -213,7 +213,7 @@ class match_fn : public match_context {
     }
 
     bool match_level_core(level const & p, level const & l) {
-        if (p == l)
+        if (is_equal(p, l))
             return true;
         if (p.kind() == l.kind()) {
             switch (p.kind()) {
@@ -242,7 +242,7 @@ class match_fn : public match_context {
         }
         level p1 = normalize(p);
         level l1 = normalize(l);
-        if (p1 != p || l1 != l)
+        if (!is_equal(p1, p) || !is_equal(l1, l))
             return match_level(p1, l1);
         else
             return false;

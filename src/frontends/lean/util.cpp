@@ -223,7 +223,7 @@ bool occurs(level const & u, level const & l) {
     bool found = false;
     for_each(l, [&](level const & l) {
             if (found) return false;
-            if (l == u) { found = true; return false; }
+            if (is_equal(l, u)) { found = true; return false; }
             return true;
         });
     return found;

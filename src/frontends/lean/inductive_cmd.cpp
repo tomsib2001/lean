@@ -455,12 +455,13 @@ struct inductive_cmd_fn {
         while (is_pi(intro_type)) {
             expr s  = m_tc->ensure_type(binding_domain(intro_type)).first;
             level l = sort_level(s);
-            if (l == m_u) {
+            if (is_equal(l, m_u)) {
                 // ignore, this is the auxiliary level
             } else if (occurs(m_u, l)) {
                 throw exception("failed to infer inductive datatype resultant universe, "
                                 "provide the universe levels explicitly");
-            } else if (std::find(r_lvls.begin(), r_lvls.end(), l) == r_lvls.end()) {
+            } else if (std::find_if(r_lvls.begin(), r_lvls.end(),
+                                    [&](level const & l2) { return is_equal(l, l2); }) == r_lvls.end()) {
                 r_lvls.push_back(l);
             }
             intro_type = instantiate(binding_body(intro_type), mk_local_for(intro_type));

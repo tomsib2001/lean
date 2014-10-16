@@ -201,7 +201,7 @@ bool occurs_meta(level const & m, level const & e) {
     for_each(e, [&](level const & l) {
             if (contains)
                 return false;
-            if (l == m) {
+            if (is_equal(l, m)) {
                 contains = true;
                 return false;
             }
@@ -224,7 +224,7 @@ unify_status unify_simple_core(substitution & s, level const & lhs, level const 
 }
 
 unify_status unify_simple(substitution & s, level const & lhs, level const & rhs, justification const & j) {
-    if (lhs == rhs)
+    if (is_equal(lhs, rhs))
         return unify_status::Solved;
     else if (!has_meta(lhs) && !has_meta(rhs))
         return unify_status::Failed;
@@ -782,9 +782,11 @@ struct unifier_fn {
             auto rhs_jst = m_subst.instantiate_metavars(cnstr_rhs_level(c));
             level lhs = lhs_jst.first;
             level rhs = rhs_jst.first;
-            if (lhs != cnstr_lhs_level(c) || rhs != cnstr_rhs_level(c)) {
+            if (!is_equal(lhs, cnstr_lhs_level(c)) ||
+                !is_equal(rhs, cnstr_rhs_level(c))) {
                 return mk_pair(mk_level_eq_cnstr(lhs, rhs,
-                                                 mk_composite1(mk_composite1(c.get_justification(), lhs_jst.second), rhs_jst.second)),
+                                                 mk_composite1(mk_composite1(c.get_justification(), lhs_jst.second),
+                                                               rhs_jst.second)),
                                true);
             }
         }
@@ -981,7 +983,7 @@ struct unifier_fn {
             rhs = succ_of(rhs);
         }
 
-        if (lhs == rhs)
+        if (is_equal(lhs, rhs))
             return true; // trivial constraint
 
         if (!has_meta(lhs) && !has_meta(rhs)) {
@@ -994,8 +996,10 @@ struct unifier_fn {
         st = process_metavar_eq(rhs, lhs, jst);
         if (st != Continue) return st == Solved;
 
-        if (lhs != cnstr_lhs_level(new_c) || rhs != cnstr_rhs_level(new_c))
+        if (!is_equal(lhs, cnstr_lhs_level(new_c)) ||
+            !is_equal(rhs, cnstr_rhs_level(new_c))) {
             new_c = mk_level_eq_cnstr(lhs, rhs, new_c.get_justification());
+        }
 
         add_cnstr(new_c, cnstr_group::FlexRigid);
         return true;
@@ -1971,7 +1975,7 @@ struct unifier_fn {
             return
                 generalized_check_meta(m, max_lhs(rhs), found_m, rest) &&
                 generalized_check_meta(m, max_rhs(rhs), found_m, rest);
-        } else if (m == rhs) {
+        } else if (is_equal(m, rhs)) {
             found_m = true;
             return true;
         } else if (occurs_meta(m, rhs)) {

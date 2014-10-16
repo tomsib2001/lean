@@ -23,24 +23,24 @@ static void check_serializer(level const & l) {
     deserializer d(in);
     level l1, l2;
     d >> l1 >> l2;
-    lean_assert_eq(l, l1);
-    lean_assert_eq(l, l2);
+    lean_assert(is_equal(l, l1));
+    lean_assert(is_equal(l, l2));
 }
 
 static void tst1() {
     level zero;
     level one = mk_succ(zero);
     level two = mk_succ(one);
-    lean_assert(mk_max(one, two) == two);
-    lean_assert(mk_imax(one, two) == two);
-    lean_assert(mk_imax(two, zero) == zero);
+    lean_assert(is_equal(mk_max(one, two), two));
+    lean_assert(is_equal(mk_imax(one, two), two));
+    lean_assert(is_equal(mk_imax(two, zero), zero));
     check_serializer(two);
     check_serializer(one);
     level p = mk_param_univ("p");
-    lean_assert(mk_imax(p, zero) == zero);
-    lean_assert(mk_max(zero, p) == p);
-    lean_assert(mk_max(p, zero) == p);
-    lean_assert(mk_max(p, one) != p);
+    lean_assert(is_equal(mk_imax(p, zero), zero));
+    lean_assert(is_equal(mk_max(zero, p), p));
+    lean_assert(is_equal(mk_max(p, zero), p));
+    lean_assert(!is_equal(mk_max(p, one), p));
     check_serializer(mk_max(p, one));
     check_serializer(mk_imax(p, one));
     check_serializer(mk_imax(one, p));

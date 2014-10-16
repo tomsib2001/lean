@@ -17,8 +17,7 @@ Author: Leonardo de Moura
 namespace lean {
 class environment;
 struct level_cell;
-/**
-   \brief Universe level kinds.
+/** \brief Universe level kinds.
 
    - Zero         : It is also Prop level if env.impredicative() is true
    - Succ(l)      : successor level
@@ -37,14 +36,15 @@ struct level_cell;
 */
 enum class level_kind { Zero, Succ, Max, IMax, Param, Global, Meta };
 
-/**
-   \brief Universe level.
-*/
+/** \brief Universe level. */
 class level {
     friend class environment;
     level_cell * m_ptr;
     friend level_cell const & to_cell(level const & l);
     friend class optional<level>;
+
+    bool operator==(level const & other) const;
+    bool operator!=(level const & other) const;
 public:
     /** \brief Universe zero */
     level();
@@ -67,8 +67,8 @@ public:
     struct ptr_eq { bool operator()(level const & n1, level const & n2) const { return n1.m_ptr == n2.m_ptr; } };
 };
 
-bool operator==(level const & l1, level const & l2);
-inline bool operator!=(level const & l1, level const & l2) { return !operator==(l1, l2); }
+bool is_equal(level const & l1, level const & l2);
+struct is_level_equal_fn { bool operator()(level const & e1, level const & e2) const { return is_equal(e1, e2); } };
 
 SPECIALIZE_OPTIONAL_FOR_SMART_PTR(level)
 
@@ -168,7 +168,11 @@ bool has_param(levels const & ls);
 /** \brief An arbitrary (monotonic) total order on universe level terms. */
 bool is_lt(level const & l1, level const & l2, bool use_hash);
 bool is_lt(levels const & as, levels const & bs, bool use_hash);
-struct level_quick_cmp { int operator()(level const & l1, level const & l2) const { return is_lt(l1, l2, true) ? -1 : (l1 == l2 ? 0 : 1); } };
+struct level_quick_cmp {
+    int operator()(level const & l1, level const & l2) const {
+        return is_lt(l1, l2, true) ? -1 : (is_equal(l1, l2) ? 0 : 1);
+    }
+};
 
 /** \brief Functional for applying <tt>F</tt> to each level expressions. */
 class for_each_level_fn {

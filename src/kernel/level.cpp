@@ -213,7 +213,7 @@ unsigned to_explicit(level const & l) {
 level mk_max(level const & l1, level const & l2)  {
     if (is_explicit(l1) && is_explicit(l2)) {
         return get_depth(l1) >= get_depth(l2) ? l1 : l2;
-    } else if (l1 == l2) {
+    } else if (is_equal(l1, l2)) {
         return l1;
     } else if (is_zero(l1)) {
         return l2;
@@ -222,7 +222,7 @@ level mk_max(level const & l1, level const & l2)  {
     } else {
         auto p1 = to_offset(l1);
         auto p2 = to_offset(l2);
-        if (p1.first == p2.first) {
+        if (is_equal(p1.first, p2.first)) {
             lean_assert(p1.second != p2.second);
             return p1.second > p2.second ? l1 : l2;
         } else {
@@ -238,7 +238,7 @@ level mk_imax(level const & l1, level const & l2) {
         return l2;  // imax u 0 = 0  for any u
     else if (is_zero(l1))
         return l2;  // imax 0 u = u  for any u
-    else if (l1 == l2)
+    else if (is_equal(l1, l2))
         return l1;  // imax u u = u
     else
         return level(new level_max_core(true,  l1, l2));
@@ -252,7 +252,7 @@ static level * g_level_zero = nullptr;
 static level * g_level_one  = nullptr;
 level const & mk_level_zero() { return *g_level_zero; }
 level const & mk_level_one() { return *g_level_one; }
-bool is_one(level const & l) { return l == mk_level_one(); }
+bool is_one(level const & l) { return is_equal(l, mk_level_one()); }
 
 level::level():level(mk_level_zero()) {}
 level::level(level_cell * ptr):m_ptr(ptr) { if (m_ptr) m_ptr->inc_ref(); }
@@ -264,7 +264,7 @@ level & level::operator=(level&& l) { LEAN_MOVE_REF(l); }
 level_kind level::kind() const { return m_ptr->m_kind; }
 unsigned level::hash() const { return m_ptr->m_hash; }
 
-bool operator==(level const & l1, level const & l2) {
+bool is_equal(level const & l1, level const & l2) {
     if (kind(l1) != kind(l2)) return false;
     if (hash(l1) != hash(l2)) return false;
     if (is_eqp(l1, l2))       return true;
@@ -283,8 +283,8 @@ bool operator==(level const & l1, level const & l2) {
         lean_unreachable(); // LCOV_EXCL_LINE
     case level_kind::Max: case level_kind::IMax:
         return
-            to_max_core(l1).m_lhs == to_max_core(l2).m_lhs &&
-            to_max_core(l1).m_rhs == to_max_core(l2).m_rhs;
+            is_equal(to_max_core(l1).m_lhs, to_max_core(l2).m_lhs) &&
+            is_equal(to_max_core(l1).m_rhs, to_max_core(l2).m_rhs);
     case level_kind::Succ:
         if (is_explicit(l1) != is_explicit(l2)) {
             return false;
@@ -293,7 +293,7 @@ bool operator==(level const & l1, level const & l2) {
             // the depths are equal, then l1 and l2 must be the same universe
             return true;
         } else {
-            return succ_of(l1) == succ_of(l2);
+            return is_equal(succ_of(l1), succ_of(l2));
         }
     }
     lean_unreachable(); // LCOV_EXCL_LINE
@@ -322,17 +322,17 @@ bool is_lt(level const & a, level const & b, bool use_hash) {
     if (da > db)                   return false;
     if (kind(a) != kind(b))        return kind(a) < kind(b);
     if (use_hash) {
-        if (hash(a) < hash(b))         return true;
-        if (hash(a) > hash(b))         return false;
+        if (hash(a) < hash(b))     return true;
+        if (hash(a) > hash(b))     return false;
     }
-    if (a == b)                    return false;
+    if (is_equal(a, b))            return false;
     switch (kind(a)) {
     case level_kind::Zero:
         lean_unreachable(); // LCOV_EXCL_LINE
     case level_kind::Param: case level_kind::Global: case level_kind::Meta:
         return to_param_core(a).m_id < to_param_core(b).m_id;
     case level_kind::Max: case level_kind::IMax:
-        if (to_max_core(a).m_lhs != to_max_core(b).m_lhs)
+        if (!is_equal(to_max_core(a).m_lhs, to_max_core(b).m_lhs))
             return is_lt(to_max_core(a).m_lhs, to_max_core(b).m_lhs, use_hash);
         else
             return is_lt(to_max_core(a).m_rhs, to_max_core(b).m_rhs, use_hash);
@@ -347,7 +347,7 @@ bool is_lt(levels const & as, levels const & bs, bool use_hash) {
         return !is_nil(bs);
     if (is_nil(bs))
         return false;
-    if (car(as) == car(bs))
+    if (is_equal(car(as), car(bs)))
         return is_lt(cdr(as), cdr(bs), use_hash);
     else
         return is_lt(car(as), car(bs), use_hash);
@@ -557,7 +557,7 @@ static bool is_norm_lt(level const & a, level const & b) {
     auto p2 = to_offset(b);
     level const & l1 = p1.first;
     level const & l2 = p2.first;
-    if (l1 != l2) {
+    if (!is_equal(l1, l2)) {
         if (kind(l1) != kind(l2)) return kind(l1) < kind(l2);
         switch (kind(l1)) {
         case level_kind::Zero: case level_kind::Succ:
@@ -565,7 +565,7 @@ static bool is_norm_lt(level const & a, level const & b) {
         case level_kind::Param: case level_kind::Global: case level_kind::Meta:
             return to_param_core(l1).m_id < to_param_core(l2).m_id;
         case level_kind::Max: case level_kind::IMax:
-            if (to_max_core(l1).m_lhs != to_max_core(l2).m_lhs)
+            if (!is_equal(to_max_core(l1).m_lhs, to_max_core(l2).m_lhs))
                 return is_norm_lt(to_max_core(l1).m_lhs, to_max_core(l2).m_lhs);
             else
                 return is_norm_lt(to_max_core(l1).m_rhs, to_max_core(l2).m_rhs);
@@ -659,7 +659,7 @@ level normalize(level const & l) {
         i++;
         for (; i < args.size(); i++) {
             auto p_curr = to_offset(args[i]);
-            if (p_prev.first == p_curr.first) {
+            if (is_equal(p_prev.first, p_curr.first)) {
                 if (p_prev.second < p_curr.second) {
                     p_prev = p_curr;
                     rargs.pop_back();
@@ -679,11 +679,11 @@ level normalize(level const & l) {
 
 bool is_equivalent(level const & lhs, level const & rhs) {
     check_system("level constraints");
-    return lhs == rhs || normalize(lhs) == normalize(rhs);
+    return is_equal(lhs, rhs) || is_equal(normalize(lhs), normalize(rhs));
 }
 
 bool is_geq_core(level l1, level l2) {
-    if (l1 == l2 || is_zero(l2))
+    if (is_equal(l1, l2) || is_zero(l2))
         return true;
     if (is_max(l2))
         return is_geq(l1, max_lhs(l2)) && is_geq(l1, max_rhs(l2));
@@ -695,7 +695,7 @@ bool is_geq_core(level l1, level l2) {
         return is_geq(imax_rhs(l1), l2);
     auto p1 = to_offset(l1);
     auto p2 = to_offset(l2);
-    if (p1.first == p2.first)
+    if (is_equal(p1.first, p2.first))
         return p1.second >= p2.second;
     if (p1.second == p2.second && p1.second > 0)
         return is_geq(p1.first, p2.first);
