@@ -9,9 +9,9 @@ Author: Leonardo de Moura
 
 namespace lean {
 void metavar_closure::add(level const & l) {
-    for_each(l, [&](level const & l) {
+    for_each(l, [&](level_ptr l) {
             if (is_meta(l)) {
-                m_lvl_mvars.insert(l);
+                m_lvl_mvars.insert(level(l));
                 return false;
             } else {
                 return has_meta(l);

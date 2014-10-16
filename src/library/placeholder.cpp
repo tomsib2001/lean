@@ -62,7 +62,7 @@ static bool is_strict_placeholder(name const & n) {
 static bool is_explicit_placeholder(name const & n) {
     return !n.is_atomic() && n.get_prefix() == *g_explicit_placeholder_name;
 }
-bool is_placeholder(level const & e) { return is_global(e) && is_placeholder(global_id(e)); }
+bool is_placeholder(level_ptr e) { return is_global(e) && is_placeholder(global_id(e)); }
 bool is_placeholder(expr const & e) {
     return (is_constant(e) && is_placeholder(const_name(e))) || (is_local(e) && is_placeholder(mlocal_name(e)));
 }
@@ -81,7 +81,7 @@ optional<expr> placeholder_type(expr const & e) {
 
 bool has_placeholder(level const & l) {
     bool r = false;
-    for_each(l, [&](level const & e) {
+    for_each(l, [&](level_ptr e) {
             if (is_placeholder(e))
                 r = true;
             return !r;

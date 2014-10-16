@@ -35,6 +35,9 @@ struct level_cell;
                     that do not contain Meta.
 */
 enum class level_kind { Zero, Succ, Max, IMax, Param, Global, Meta };
+typedef level_cell * level_ptr;
+unsigned hash(level_ptr l);
+level_kind kind(level_ptr l);
 
 /** \brief Universe level. */
 class level {
@@ -48,18 +51,18 @@ class level {
 public:
     /** \brief Universe zero */
     level();
-    level(level_cell * ptr);
+    explicit level(level_ptr ptr);
     level(level const & l);
     level(level&& s);
     ~level();
 
-    level_kind kind() const;
-    unsigned hash() const;
+    level_kind kind() const { return ::lean::kind(m_ptr); }
+    unsigned hash() const { return ::lean::hash(m_ptr); }
+    operator level_ptr() const { return m_ptr; }
+    level_ptr raw() const { return m_ptr; }
 
     level & operator=(level const & l);
     level & operator=(level&& l);
-
-    friend bool is_eqp(level const & l1, level const & l2) { return l1.m_ptr == l2.m_ptr; }
 
     friend void swap(level & l1, level & l2) { std::swap(l1, l2); }
 
@@ -67,7 +70,8 @@ public:
     struct ptr_eq { bool operator()(level const & n1, level const & n2) const { return n1.m_ptr == n2.m_ptr; } };
 };
 
-bool is_equal(level const & l1, level const & l2);
+inline bool is_eqp(level_ptr l1, level_ptr l2) { return l1 == l2; }
+bool is_equal(level_ptr l1, level_ptr l2);
 struct is_level_equal_fn { bool operator()(level const & e1, level const & e2) const { return is_equal(e1, e2); } };
 
 SPECIALIZE_OPTIONAL_FOR_SMART_PTR(level)
@@ -78,52 +82,53 @@ inline optional<level> some_level(level && e) { return optional<level>(std::forw
 
 level const & mk_level_zero();
 level const & mk_level_one();
-level mk_max(level const & l1, level const & l2);
-level mk_imax(level const & l1, level const & l2);
-level mk_succ(level const & l);
+level mk_max(level_ptr l1, level_ptr l2);
+level mk_imax(level_ptr l1, level_ptr l2);
+level mk_succ(level_ptr l);
 level mk_param_univ(name const & n);
 level mk_global_univ(name const & n);
 level mk_meta_univ(name const & n);
 
-inline unsigned hash(level const & l) { return l.hash(); }
-inline level_kind kind(level const & l) { return l.kind(); }
-inline bool is_zero(level const & l)   { return kind(l) == level_kind::Zero; }
-inline bool is_param(level const & l)  { return kind(l) == level_kind::Param; }
-inline bool is_global(level const & l) { return kind(l) == level_kind::Global; }
-inline bool is_meta(level const & l)   { return kind(l) == level_kind::Meta; }
-inline bool is_succ(level const & l)   { return kind(l) == level_kind::Succ; }
-inline bool is_max(level const & l)    { return kind(l) == level_kind::Max; }
-inline bool is_imax(level const & l)   { return kind(l) == level_kind::IMax; }
-bool is_one(level const & l);
+inline bool is_zero(level_ptr l)   { return kind(l) == level_kind::Zero; }
+inline bool is_param(level_ptr l)  { return kind(l) == level_kind::Param; }
+inline bool is_global(level_ptr l) { return kind(l) == level_kind::Global; }
+inline bool is_meta(level_ptr l)   { return kind(l) == level_kind::Meta; }
+inline bool is_succ(level_ptr l)   { return kind(l) == level_kind::Succ; }
+inline bool is_max(level_ptr l)    { return kind(l) == level_kind::Max; }
+inline bool is_imax(level_ptr l)   { return kind(l) == level_kind::IMax; }
+bool is_one(level_ptr l);
 
-unsigned get_depth(level const & l);
+unsigned get_depth(level_ptr l);
 
-level const & max_lhs(level const & l);
-level const & max_rhs(level const & l);
-level const & imax_lhs(level const & l);
-level const & imax_rhs(level const & l);
-level const & succ_of(level const & l);
-name const & param_id(level const & l);
-name const & global_id(level const & l);
-name const & meta_id(level const & l);
-name const & level_id(level const & l);
+level const & max_lhs(level_ptr l);
+level const & max_rhs(level_ptr l);
+level const & imax_lhs(level_ptr l);
+level const & imax_rhs(level_ptr l);
+level const & succ_of(level_ptr l);
+name const & param_id(level_ptr l);
+name const & global_id(level_ptr l);
+name const & meta_id(level_ptr l);
+name const & level_id(level_ptr l);
 /**
    \brief Return true iff \c l is an explicit level.
    We say a level l is explicit iff
    1) l is zero OR
    2) l = succ(l') and l' is explicit
 */
-bool is_explicit(level const & l);
+bool is_explicit(level_ptr l);
 /** \brief Convert an explicit universe into a unsigned integer.
     \pre is_explicit(l)
 */
-unsigned to_explicit(level const & l);
+unsigned to_explicit(level_ptr l);
 /** \brief Return true iff \c l contains placeholder (aka meta parameters). */
-bool has_meta(level const & l);
+bool has_meta(level_ptr l);
+inline bool has_meta(level const & l) { return has_meta(l.raw()); }
 /** \brief Return true iff \c l contains globals */
-bool has_global(level const & l);
+bool has_global(level_ptr l);
+inline bool has_global(level const & l) { return has_global(l.raw()); }
 /** \brief Return true iff \c l contains parameters */
-bool has_param(level const & l);
+bool has_param(level_ptr l);
+inline bool has_param(level const & l) { return has_param(l.raw()); }
 
 /**
    \brief Return a new level expression based on <tt>l == succ(arg)</tt>, where \c arg is replaced with
@@ -131,22 +136,22 @@ bool has_param(level const & l);
 
    \pre is_succ(l)
 */
-level update_succ(level const & l, level const & new_arg);
+level update_succ(level_ptr l, level_ptr new_arg);
 /**
    \brief Return a new level expression based on <tt>l == max(lhs, rhs)</tt>, where \c lhs is replaced with
    \c new_lhs and \c rhs is replaced with \c new_rhs.
 
    \pre is_max(l) || is_imax(l)
 */
-level update_max(level const & l, level const & new_lhs, level const & new_rhs);
+level update_max(level_ptr l, level_ptr new_lhs, level_ptr new_rhs);
 
 /**
    \brief Return true if lhs and rhs denote the same level.
    The check is done by normalization.
 */
-bool is_equivalent(level const & lhs, level const & rhs);
+bool is_equivalent(level_ptr lhs, level_ptr rhs);
 /** \brief Return the given level expression normal form */
-level normalize(level const & l);
+level normalize(level_ptr l);
 
 /**
    \brief If the result is true, then forall assignments \c A that assigns all parameters, globals and metavariables occuring
@@ -156,8 +161,7 @@ level normalize(level const & l);
 */
 bool is_geq_core(level l1, level l2);
 
-bool is_geq(level const & l1, level const & l2);
-
+bool is_geq(level_ptr l1, level_ptr l2);
 
 typedef list<level> levels;
 
@@ -166,6 +170,7 @@ bool has_global(levels const & ls);
 bool has_param(levels const & ls);
 
 /** \brief An arbitrary (monotonic) total order on universe level terms. */
+bool is_lt(level_ptr l1, level_ptr l2, bool use_hash);
 bool is_lt(level const & l1, level const & l2, bool use_hash);
 bool is_lt(levels const & as, levels const & bs, bool use_hash);
 struct level_quick_cmp {
@@ -176,37 +181,37 @@ struct level_quick_cmp {
 
 /** \brief Functional for applying <tt>F</tt> to each level expressions. */
 class for_each_level_fn {
-    std::function<bool(level const &)>  m_f; // NOLINT
-    void apply(level const & l);
+    std::function<bool(level_ptr)>  m_f; // NOLINT
+    void apply(level_ptr);
 public:
     template<typename F> for_each_level_fn(F const & f):m_f(f) {}
-    void operator()(level const & l) { return apply(l); }
+    void operator()(level_ptr l) { return apply(l); }
 };
-template<typename F> void for_each(level const & l, F const & f) { return for_each_level_fn(f)(l); }
+template<typename F> void for_each(level_ptr l, F const & f) { return for_each_level_fn(f)(l); }
 
 /** \brief Functional for applying <tt>F</tt> to the level expressions. */
 class replace_level_fn {
-    std::function<optional<level>(level const &)>  m_f;
-    level apply(level const & l);
+    std::function<optional<level>(level_ptr)>  m_f;
+    level apply(level_ptr);
 public:
     template<typename F> replace_level_fn(F const & f):m_f(f) {}
-    level operator()(level const & l) { return apply(l); }
+    level operator()(level_ptr l) { return apply(l); }
 };
-template<typename F> level replace(level const & l, F const & f) { return replace_level_fn(f)(l); }
+template<typename F> level replace(level_ptr l, F const & f) { return replace_level_fn(f)(l); }
 
 typedef list<name> level_param_names;
 
 /** \brief If \c l contains a global that is not in \c env, then return it. Otherwise, return none. */
-optional<name> get_undef_global(level const & l, environment const & env);
+optional<name> get_undef_global(level_ptr l, environment const & env);
 
 /** \brief If \c l contains a parameter that is not in \c ps, then return it. Otherwise, return none. */
-optional<name> get_undef_param(level const & l, level_param_names const & ps);
+optional<name> get_undef_param(level_ptr l, level_param_names const & ps);
 
 /**
     \brief Instantiate the universe level parameters \c ps occurring in \c l with the levels \c ls.
     \pre length(ps) == length(ls)
 */
-level instantiate(level const & l, level_param_names const & ps, levels const & ls);
+level instantiate(level_ptr l, level_param_names const & ps, levels const & ls);
 
 /** \brief Printer for debugging purposes */
 std::ostream & operator<<(std::ostream & out, level const & l);
@@ -215,17 +220,17 @@ std::ostream & operator<<(std::ostream & out, level const & l);
    \brief If the result is true, then forall assignments \c A that assigns all parameters, globals and metavariables occuring
    in \c l, l[A] != zero.
 */
-bool is_not_zero(level const & l);
+bool is_not_zero(level_ptr l);
 
 /** \brief Pretty print the given level expression, unicode characters are used if \c unicode is \c true. */
-format pp(level l, bool unicode, unsigned indent);
+format pp(level_ptr l, bool unicode, unsigned indent);
 /** \brief Pretty print the given level expression using the given configuration options. */
-format pp(level const & l, options const & opts = options());
+format pp(level_ptr l, options const & opts = options());
 
 /** \brief Pretty print lhs <= rhs, unicode characters are used if \c unicode is \c true. */
-format pp(level const & lhs, level const & rhs, bool unicode, unsigned indent);
+format pp(level_ptr lhs, level_ptr rhs, bool unicode, unsigned indent);
 /** \brief Pretty print lhs <= rhs using the given configuration options. */
-format pp(level const & lhs, level const & rhs, options const & opts = options());
+format pp(level_ptr lhs, level_ptr rhs, options const & opts = options());
 /** \brief Convert a list of universe level parameter names into a list of levels. */
 levels param_names_to_levels(level_param_names const & ps);
 

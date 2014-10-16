@@ -68,11 +68,11 @@ pair<level, justification> substitution::instantiate_metavars(level const & l, b
         return mk_pair(l, justification());
     justification j;
     auto save_jst = [&](justification const & j2) { j = mk_composite1(j, j2); };
-    level r = replace(l, [&](level const & l) {
+    level r = replace(l, [&](level_ptr l) {
             if (!has_meta(l)) {
-                return some_level(l);
+                return some_level(level(l));
             } else if (is_meta(l)) {
-                auto p1 = get_assignment(l);
+                auto p1 = get_assignment(level(l));
                 if (p1) {
                     auto p2 = instantiate_metavars(p1->first, use_jst);
                     if (use_jst) {
@@ -82,7 +82,7 @@ pair<level, justification> substitution::instantiate_metavars(level const & l, b
                     } else {
                         assign(meta_id(l), p2.first);
                     }
-                    return some_level(p2.first);
+                    return some_level(level(p2.first));
                 }
             }
             return none_level();

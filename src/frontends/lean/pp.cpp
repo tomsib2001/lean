@@ -120,9 +120,9 @@ name pretty_fn::mk_local_name(name const & n, name const & suggested) {
 level pretty_fn::purify(level const & l) {
     if (!m_universes || !has_meta(l))
         return l;
-    return replace(l, [&](level const & l) {
+    return replace(l, [&](level_ptr l) {
             if (!has_meta(l))
-                return some_level(l);
+                return some_level(level(l));
             if (is_meta(l))
                 return some_level(mk_meta_univ(mk_metavar_name(meta_id(l))));
             return none_level();

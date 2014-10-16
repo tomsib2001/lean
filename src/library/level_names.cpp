@@ -17,7 +17,7 @@ Author: Leonardo de Moura
 namespace lean {
 // Collect all universe global levels occurring in l into ls
 static void collect_global_levels(level const & l, name_set & ls) {
-    for_each(l, [&](level const & l) {
+    for_each(l, [&](level_ptr l) {
             if (is_global(l))
                 ls.insert(global_id(l));
             return true;
@@ -62,7 +62,7 @@ static level_param_names sanitize_level_params(level_param_names const & ls, nam
 
 // Rename universe parameters occurring in l using the given mapping
 static level rename_param_levels(level const & l, name_map<name> const & param_name_map) {
-    return replace(l, [&](level const & l) {
+    return replace(l, [&](level_ptr l) {
             if (is_param(l)) {
                 if (auto it = param_name_map.find(param_id(l))) {
                     return some_level(mk_param_univ(*it));

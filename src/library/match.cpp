@@ -28,14 +28,14 @@ level mk_idx_meta_univ(unsigned i) {
     return mk_meta_univ(name(*g_tmp_prefix, i));
 }
 
-bool is_idx_meta_univ(level const & l) {
+static bool is_idx_meta_univ(level_ptr l) {
     if (!is_meta(l))
         return false;
     name const & n = meta_id(l);
     return !n.is_atomic() && n.is_numeral() && n.get_prefix() == *g_tmp_prefix;
 }
 
-unsigned to_meta_idx(level const & l) {
+static unsigned to_meta_idx(level_ptr l) {
     lean_assert(is_idx_meta_univ(l));
     return meta_id(l).get_numeral();
 }
@@ -366,7 +366,7 @@ match_plugin mk_whnf_match_plugin(std::shared_ptr<type_checker> tc) {
 }
 
 static unsigned updt_idx_meta_univ_range(level const & l, unsigned r) {
-    for_each(l, [&](level const & l) {
+    for_each(l, [&](level_ptr l) {
             if (!has_meta(l)) return false;
             if (is_idx_meta_univ(l)) {
                 unsigned new_r = to_meta_idx(l) + 1;

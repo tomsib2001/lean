@@ -25,7 +25,7 @@ inline expr mk_strict_expr_placeholder(optional<expr> const & type = none_expr()
 }
 
 /** \brief Return true if the given level is a placeholder. */
-bool is_placeholder(level const & e);
+bool is_placeholder(level_ptr l);
 
 /** \brief Return true iff the given expression is a placeholder (strict, explicit or implicit). */
 bool is_placeholder(expr const & e);

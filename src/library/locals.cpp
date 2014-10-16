@@ -10,7 +10,7 @@ Author: Leonardo de Moura
 
 namespace lean {
 void collect_univ_params_core(level const & l, name_set & r) {
-    for_each(l, [&](level const & l) {
+    for_each(l, [&](level_ptr l) {
             if (!has_param(l))
                 return false;
             if (is_param(l))

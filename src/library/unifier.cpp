@@ -198,7 +198,7 @@ unify_status unify_simple(substitution & s, expr const & lhs, expr const & rhs, 
 bool occurs_meta(level const & m, level const & e) {
     lean_assert(is_meta(m));
     bool contains = false;
-    for_each(e, [&](level const & l) {
+    for_each(e, [&](level_ptr l) {
             if (contains)
                 return false;
             if (is_equal(l, m)) {

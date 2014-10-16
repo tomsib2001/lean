@@ -221,7 +221,7 @@ level mk_result_level(environment const & env, buffer<level> const & r_lvls) {
 
 bool occurs(level const & u, level const & l) {
     bool found = false;
-    for_each(l, [&](level const & l) {
+    for_each(l, [&](level_ptr l) {
             if (found) return false;
             if (is_equal(l, u)) { found = true; return false; }
             return true;
@@ -264,15 +264,15 @@ public:
         m_env(env), m_lls(lls), m_subst(s), m_params(ps), m_new_params(new_ps), m_next_idx(1) {}
 
     level apply(level const & l) {
-        return replace(l, [&](level const & l) {
+        return replace(l, [&](level_ptr l) {
                 if (!has_meta(l))
-                    return some_level(l);
+                    return some_level(level(l));
                 if (is_meta(l)) {
                     if (auto it = m_subst.get_level(meta_id(l))) {
                         return some_level(*it);
                     } else {
                         level new_p = mk_new_univ_param();
-                        m_subst.assign(l, new_p);
+                        m_subst.assign(meta_id(l), new_p);
                         return some_level(new_p);
                     }
                 }

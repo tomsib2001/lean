@@ -101,7 +101,7 @@ static int level_lt(lua_State * L) {
 static int mk_level_zero(lua_State * L)  { return push_level(L, mk_level_zero()); }
 static int mk_level_one(lua_State * L)   { return push_level(L, mk_level_one());  }
 static int mk_level_succ(lua_State * L)  { return push_level(L, mk_succ(to_level_ext(L, 1))); }
-template<level (*F)(level const & l1, level const & l2)>
+template<level (*F)(level_ptr l1, level_ptr l2)>
 static int mk_level_max_core(lua_State * L)   {
     int nargs = lua_gettop(L);
     level r;

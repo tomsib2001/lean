@@ -572,7 +572,7 @@ expr elaborator::visit_placeholder(expr const & e, constraint_seq & cs) {
 }
 
 level elaborator::replace_univ_placeholder(level const & l) {
-    auto fn = [&](level const & l) {
+    auto fn = [&](level_ptr l) {
         if (is_placeholder(l))
             return some_level(mk_meta_univ(m_ngen.next()));
         else
@@ -583,7 +583,7 @@ level elaborator::replace_univ_placeholder(level const & l) {
 
 static bool contains_placeholder(level const & l) {
     bool contains = false;
-    auto fn = [&](level const & l) {
+    auto fn = [&](level_ptr l) {
         if (contains) return false;
         if (is_placeholder(l))
             contains = true;
@@ -1040,9 +1040,9 @@ void elaborator::check_sort_assignments(substitution const & s) {
         expr pre  = p.first;
         expr post = p.second;
         lean_assert(is_sort(post));
-        for_each(sort_level(post), [&](level const & u) {
-                if (is_meta(u) && s.is_assigned(u)) {
-                    level r = *s.get_level(u);
+        for_each(sort_level(post), [&](level_ptr u) {
+                if (is_meta(u) && s.is_level_assigned(meta_id(u))) {
+                    level r = *s.get_level(meta_id(u));
                     if (is_explicit(r)) {
                         substitution saved_s(s);
                         throw_kernel_exception(env(), pre, [=](formatter const & fmt) {

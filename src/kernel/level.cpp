@@ -18,10 +18,6 @@ Author: Leonardo de Moura
 #include "kernel/environment.h"
 
 namespace lean {
-level_cell const & to_cell(level const & l) {
-    return *l.m_ptr;
-}
-
 /** \brief Base class for representing universe level terms. */
 struct level_cell {
     void dealloc();
@@ -30,6 +26,9 @@ struct level_cell {
     unsigned   m_hash;
     level_cell(level_kind k, unsigned h):m_rc(0), m_kind(k), m_hash(h) {}
 };
+
+unsigned hash(level_ptr l) { return l->m_hash; }
+level_kind kind(level_ptr l) { return l->m_kind; }
 
 struct level_composite : public level_cell {
     unsigned   m_depth;
@@ -40,7 +39,7 @@ struct level_composite : public level_cell {
         level_cell(k, h), m_depth(d), m_has_param(has_param), m_has_global(has_global), m_has_meta(has_meta) {}
 };
 
-bool is_composite(level const & l) {
+bool is_composite(level_ptr l) {
     switch (kind(l)) {
     case level_kind::Succ: case level_kind::Max: case level_kind::IMax:
         return true;
@@ -50,27 +49,27 @@ bool is_composite(level const & l) {
     lean_unreachable(); // LCOV_EXCL_LINE
 }
 
-static level_composite const & to_composite(level const & l) {
+static level_composite const & to_composite(level_ptr l) {
     lean_assert(is_composite(l));
-    return static_cast<level_composite const &>(to_cell(l));
+    return static_cast<level_composite const &>(*l);
 }
 
 struct level_succ : public level_composite {
     level m_l;
     bool  m_explicit;
-    level_succ(level const & l):
+    level_succ(level_ptr l):
         level_composite(level_kind::Succ, hash(hash(l), 17u), get_depth(l) + 1, has_param(l), has_global(l), has_meta(l)),
         m_l(l),
         m_explicit(is_explicit(l)) {}
 };
 
-level_succ const & to_level_succ(level const & l) { lean_assert(is_succ(l)); return static_cast<level_succ const &>(to_cell(l)); }
-level const & succ_of(level const & l) { return to_level_succ(l).m_l; }
+level_succ const & to_level_succ(level_ptr l) { lean_assert(is_succ(l)); return static_cast<level_succ const &>(*l); }
+level const & succ_of(level_ptr l) { return to_level_succ(l).m_l; }
 
 struct level_max_core : public level_composite {
     level m_lhs;
     level m_rhs;
-    level_max_core(bool imax, level const & l1, level const & l2):
+    level_max_core(bool imax, level_ptr l1, level_ptr l2):
         level_composite(imax ? level_kind::IMax : level_kind::Max,
                         hash(hash(l1), hash(l2)),
                         std::max(get_depth(l1), get_depth(l2)) + 1,
@@ -82,15 +81,15 @@ struct level_max_core : public level_composite {
     }
 };
 
-static level_max_core const & to_max_core(level const & l) {
+static level_max_core const & to_max_core(level_ptr l) {
     lean_assert(is_max(l) || is_imax(l));
-    return static_cast<level_max_core const &>(to_cell(l));
+    return static_cast<level_max_core const &>(*l);
 }
 
-level const & max_lhs(level const & l) { lean_assert(is_max(l));   return to_max_core(l).m_lhs; }
-level const & max_rhs(level const & l) { lean_assert(is_max(l));   return to_max_core(l).m_rhs; }
-level const & imax_lhs(level const & l) { lean_assert(is_imax(l)); return to_max_core(l).m_lhs; }
-level const & imax_rhs(level const & l) { lean_assert(is_imax(l)); return to_max_core(l).m_rhs; }
+level const & max_lhs(level_ptr l) { lean_assert(is_max(l));   return to_max_core(l).m_lhs; }
+level const & max_rhs(level_ptr l) { lean_assert(is_max(l));   return to_max_core(l).m_rhs; }
+level const & imax_lhs(level_ptr l) { lean_assert(is_imax(l)); return to_max_core(l).m_lhs; }
+level const & imax_rhs(level_ptr l) { lean_assert(is_imax(l)); return to_max_core(l).m_rhs; }
 
 struct level_param_core : public level_cell {
     name m_id;
@@ -101,17 +100,17 @@ struct level_param_core : public level_cell {
     }
 };
 
-bool is_param_core(level const & l) { return is_param(l) || is_global(l) || is_meta(l); }
+bool is_param_core(level_ptr l) { return is_param(l) || is_global(l) || is_meta(l); }
 
-static level_param_core const & to_param_core(level const & l) {
+static level_param_core const & to_param_core(level_ptr l) {
     lean_assert(is_param_core(l));
-    return static_cast<level_param_core const &>(to_cell(l));
+    return static_cast<level_param_core const &>(*l);
 }
 
-name const & param_id(level const & l) { lean_assert(is_param(l)); return to_param_core(l).m_id; }
-name const & global_id(level const & l)  { lean_assert(is_global(l));  return to_param_core(l).m_id; }
-name const & meta_id(level const & l)  { lean_assert(is_meta(l));  return to_param_core(l).m_id; }
-name const & level_id(level const & l) {
+name const & param_id(level_ptr l) { lean_assert(is_param(l)); return to_param_core(l).m_id; }
+name const & global_id(level_ptr l)  { lean_assert(is_global(l));  return to_param_core(l).m_id; }
+name const & meta_id(level_ptr l)  { lean_assert(is_meta(l));  return to_param_core(l).m_id; }
+name const & level_id(level_ptr l) {
     lean_assert(is_param(l) || is_global(l) || is_meta(l));
     return to_param_core(l).m_id;
 }
@@ -133,7 +132,7 @@ void level_cell::dealloc() {
     }
 }
 
-unsigned get_depth(level const & l) {
+unsigned get_depth(level_ptr l) {
     switch (kind(l)) {
     case level_kind::Zero: case level_kind::Param: case level_kind::Global: case level_kind::Meta:
         return 1;
@@ -143,7 +142,7 @@ unsigned get_depth(level const & l) {
     lean_unreachable(); // LCOV_EXCL_LINE
 }
 
-bool has_param(level const & l) {
+bool has_param(level_ptr l) {
     switch (kind(l)) {
     case level_kind::Zero: case level_kind::Meta: case level_kind::Global:
         return false;
@@ -155,7 +154,7 @@ bool has_param(level const & l) {
     lean_unreachable(); // LCOV_EXCL_LINE
 }
 
-bool has_global(level const & l) {
+bool has_global(level_ptr l) {
     switch (kind(l)) {
     case level_kind::Zero: case level_kind::Param: case level_kind::Meta:
         return false;
@@ -167,7 +166,7 @@ bool has_global(level const & l) {
     lean_unreachable(); // LCOV_EXCL_LINE
 }
 
-bool has_meta(level const & l) {
+bool has_meta(level_ptr l) {
     switch (kind(l)) {
     case level_kind::Zero: case level_kind::Param: case level_kind::Global:
         return false;
@@ -179,7 +178,7 @@ bool has_meta(level const & l) {
     lean_unreachable(); // LCOV_EXCL_LINE
 }
 
-bool is_explicit(level const & l) {
+bool is_explicit(level_ptr l) {
     switch (kind(l)) {
     case level_kind::Zero:
         return true;
@@ -191,12 +190,12 @@ bool is_explicit(level const & l) {
     lean_unreachable(); // LCOV_EXCL_LINE
 }
 
-level mk_succ(level const & l) {
+level mk_succ(level_ptr l) {
     return level(new level_succ(l));
 }
 
 /** \brief Convert (succ^k l) into (l, k). If l is not a succ, then return (l, 0) */
-pair<level, unsigned> to_offset(level l) {
+static pair<level_ptr, unsigned> to_offset(level_ptr l) {
     unsigned k = 0;
     while (is_succ(l)) {
         l = succ_of(l);
@@ -205,41 +204,41 @@ pair<level, unsigned> to_offset(level l) {
     return mk_pair(l, k);
 }
 
-unsigned to_explicit(level const & l) {
+unsigned to_explicit(level_ptr l) {
     lean_assert(is_explicit(l));
     return to_offset(l).second;
 }
 
-level mk_max(level const & l1, level const & l2)  {
+level mk_max(level_ptr l1, level_ptr l2)  {
     if (is_explicit(l1) && is_explicit(l2)) {
-        return get_depth(l1) >= get_depth(l2) ? l1 : l2;
+        return get_depth(l1) >= get_depth(l2) ? level(l1) : level(l2);
     } else if (is_equal(l1, l2)) {
-        return l1;
+        return level(l1);
     } else if (is_zero(l1)) {
-        return l2;
+        return level(l2);
     } else if (is_zero(l2)) {
-        return l1;
+        return level(l1);
     } else {
         auto p1 = to_offset(l1);
         auto p2 = to_offset(l2);
         if (is_equal(p1.first, p2.first)) {
             lean_assert(p1.second != p2.second);
-            return p1.second > p2.second ? l1 : l2;
+            return p1.second > p2.second ? level(l1) : level(l2);
         } else {
             return level(new level_max_core(false, l1, l2));
         }
     }
 }
 
-level mk_imax(level const & l1, level const & l2) {
+level mk_imax(level_ptr l1, level_ptr l2) {
     if (is_not_zero(l2))
         return mk_max(l1, l2);
     else if (is_zero(l2))
-        return l2;  // imax u 0 = 0  for any u
+        return level(l2);  // imax u 0 = 0  for any u
     else if (is_zero(l1))
-        return l2;  // imax 0 u = u  for any u
+        return level(l2);  // imax 0 u = u  for any u
     else if (is_equal(l1, l2))
-        return l1;  // imax u u = u
+        return level(l1);  // imax u u = u
     else
         return level(new level_max_core(true,  l1, l2));
 }
@@ -252,19 +251,17 @@ static level * g_level_zero = nullptr;
 static level * g_level_one  = nullptr;
 level const & mk_level_zero() { return *g_level_zero; }
 level const & mk_level_one() { return *g_level_one; }
-bool is_one(level const & l) { return is_equal(l, mk_level_one()); }
+bool is_one(level_ptr l) { return is_equal(l, mk_level_one()); }
 
 level::level():level(mk_level_zero()) {}
-level::level(level_cell * ptr):m_ptr(ptr) { if (m_ptr) m_ptr->inc_ref(); }
+level::level(level_ptr ptr):m_ptr(ptr) { if (m_ptr) m_ptr->inc_ref(); }
 level::level(level const & s):m_ptr(s.m_ptr) { if (m_ptr) m_ptr->inc_ref(); }
 level::level(level && s):m_ptr(s.m_ptr) { s.m_ptr = nullptr; }
 level::~level() { if (m_ptr) m_ptr->dec_ref(); }
 level & level::operator=(level const & l) { LEAN_COPY_REF(l); }
 level & level::operator=(level&& l) { LEAN_MOVE_REF(l); }
-level_kind level::kind() const { return m_ptr->m_kind; }
-unsigned level::hash() const { return m_ptr->m_hash; }
 
-bool is_equal(level const & l1, level const & l2) {
+bool is_equal(level_ptr l1, level_ptr l2) {
     if (kind(l1) != kind(l2)) return false;
     if (hash(l1) != hash(l2)) return false;
     if (is_eqp(l1, l2))       return true;
@@ -299,7 +296,7 @@ bool is_equal(level const & l1, level const & l2) {
     lean_unreachable(); // LCOV_EXCL_LINE
 }
 
-bool is_not_zero(level const & l) {
+bool is_not_zero(level_ptr l) {
     switch (kind(l)) {
     case level_kind::Zero: case level_kind::Param: case level_kind::Global: case level_kind::Meta:
         return false;
@@ -314,7 +311,7 @@ bool is_not_zero(level const & l) {
 }
 
 // Monotonic total order on universe level terms.
-bool is_lt(level const & a, level const & b, bool use_hash) {
+bool is_lt(level_ptr a, level_ptr b, bool use_hash) {
     if (is_eqp(a, b))              return false;
     unsigned da = get_depth(a);
     unsigned db = get_depth(b);
@@ -342,6 +339,10 @@ bool is_lt(level const & a, level const & b, bool use_hash) {
     lean_unreachable(); // LCOV_EXCL_LINE
 }
 
+bool is_lt(level const & a, level const & b, bool use_hash) {
+    return is_lt(a.raw(), b.raw(), use_hash);
+}
+
 bool is_lt(levels const & as, levels const & bs, bool use_hash) {
     if (is_nil(as))
         return !is_nil(bs);
@@ -357,10 +358,10 @@ bool has_param(levels const & ls) { return std::any_of(ls.begin(), ls.end(), [](
 bool has_global(levels const & ls) { return std::any_of(ls.begin(), ls.end(), [](level const & l) { return has_global(l); }); }
 bool has_meta(levels const & ls) { return std::any_of(ls.begin(), ls.end(), [](level const & l) { return has_meta(l); }); }
 
-void for_each_level_fn::apply(level const & l) {
+void for_each_level_fn::apply(level_ptr l) {
     if (!m_f(l))
         return;
-    switch (l.kind()) {
+    switch (kind(l)) {
     case level_kind::Succ:                          apply(succ_of(l)); break;
     case level_kind::Max: case level_kind::IMax:    apply(to_max_core(l).m_lhs); apply(to_max_core(l).m_rhs); break;
     case level_kind::Zero: case level_kind::Param:
@@ -368,24 +369,24 @@ void for_each_level_fn::apply(level const & l) {
     }
 }
 
-level replace_level_fn::apply(level const & l) {
+level replace_level_fn::apply(level_ptr l) {
     optional<level> r = m_f(l);
     if (r)
         return *r;
-    switch (l.kind()) {
+    switch (kind(l)) {
     case level_kind::Succ:
         return update_succ(l, apply(succ_of(l)));
     case level_kind::Max: case level_kind::IMax:
         return update_max(l, apply(to_max_core(l).m_lhs), apply(to_max_core(l).m_rhs));
     case level_kind::Zero: case level_kind::Param: case level_kind::Meta: case level_kind::Global:
-        return l;
+        return level(l);
     }
     lean_unreachable(); // LCOV_EXCL_LINE
 }
 
-optional<name> get_undef_param(level const & l, level_param_names const & ps) {
+optional<name> get_undef_param(level_ptr l, level_param_names const & ps) {
     optional<name> r;
-    for_each(l, [&](level const & l) {
+    for_each(l, [&](level_ptr l) {
             if (!has_param(l) || r)
                 return false;
             if (is_param(l) && std::find(ps.begin(), ps.end(), param_id(l)) == ps.end())
@@ -395,9 +396,9 @@ optional<name> get_undef_param(level const & l, level_param_names const & ps) {
     return r;
 }
 
-optional<name> get_undef_global(level const & l, environment const & env) {
+optional<name> get_undef_global(level_ptr l, environment const & env) {
     optional<name> r;
-    for_each(l, [&](level const & l) {
+    for_each(l, [&](level_ptr l) {
             if (!has_global(l) || r)
                 return false;
             if (is_global(l) && !env.is_universe(global_id(l)))
@@ -407,27 +408,27 @@ optional<name> get_undef_global(level const & l, environment const & env) {
     return r;
 }
 
-level update_succ(level const & l, level const & new_arg) {
+level update_succ(level_ptr l, level_ptr new_arg) {
     if (is_eqp(succ_of(l), new_arg))
-        return l;
+        return level(l);
     else
         return mk_succ(new_arg);
 }
 
-level update_max(level const & l, level const & new_lhs, level const & new_rhs) {
+level update_max(level_ptr l, level_ptr new_lhs, level_ptr new_rhs) {
     if (is_eqp(to_max_core(l).m_lhs, new_lhs) && is_eqp(to_max_core(l).m_rhs, new_rhs))
-        return l;
+        return level(l);
     else if (is_max(l))
         return mk_max(new_lhs, new_rhs);
     else
         return mk_imax(new_lhs, new_rhs);
 }
 
-level instantiate(level const & l, level_param_names const & ps, levels const & ls) {
+level instantiate(level_ptr l, level_param_names const & ps, levels const & ls) {
     lean_assert(length(ps) == length(ls));
-    return replace(l, [=](level const & l) {
+    return replace(l, [=](level_ptr l) {
             if (!has_param(l)) {
-                return some_level(l);
+                return some_level(level(l));
             } else if (is_param(l)) {
                 name const & id = param_id(l);
                 list<name> const *it1 = &ps;
@@ -438,16 +439,16 @@ level instantiate(level const & l, level_param_names const & ps, levels const & 
                     it1 = &tail(*it1);
                     it2 = &tail(*it2);
                 }
-                return some_level(l);
+                return some_level(level(l));
             } else {
                 return none_level();
             }
         });
 }
 
-static void print(std::ostream & out, level l);
+static void print(std::ostream & out, level_ptr l);
 
-static void print_child(std::ostream & out, level const & l) {
+static void print_child(std::ostream & out, level_ptr l) {
     if (is_explicit(l) || is_param(l) || is_meta(l) || is_global(l)) {
         print(out, l);
     } else {
@@ -457,7 +458,7 @@ static void print_child(std::ostream & out, level const & l) {
     }
 }
 
-static void print(std::ostream & out, level l) {
+static void print(std::ostream & out, level_ptr l) {
     if (is_explicit(l)) {
         lean_assert(get_depth(l) > 0);
         out << get_depth(l) - 1;
@@ -495,9 +496,9 @@ std::ostream & operator<<(std::ostream & out, level const & l) {
     return out;
 }
 
-format pp(level l, bool unicode, unsigned indent);
+format pp(level_ptr l, bool unicode, unsigned indent);
 
-static format pp_child(level const & l, bool unicode, unsigned indent) {
+static format pp_child(level_ptr l, bool unicode, unsigned indent) {
     if (is_explicit(l) || is_param(l) || is_meta(l) || is_global(l)) {
         return pp(l, unicode, indent);
     } else {
@@ -505,7 +506,7 @@ static format pp_child(level const & l, bool unicode, unsigned indent) {
     }
 }
 
-format pp(level l, bool unicode, unsigned indent) {
+format pp(level_ptr l, bool unicode, unsigned indent) {
     if (is_explicit(l)) {
         lean_assert(get_depth(l) > 0);
         return format(get_depth(l) - 1);
@@ -534,16 +535,16 @@ format pp(level l, bool unicode, unsigned indent) {
     }
 }
 
-format pp(level const & l, options const & opts) {
+format pp(level_ptr l, options const & opts) {
     return pp(l, get_pp_unicode(opts), get_pp_indent(opts));
 }
 
-format pp(level const & lhs, level const & rhs, bool unicode, unsigned indent) {
+format pp(level_ptr lhs, level_ptr rhs, bool unicode, unsigned indent) {
     format leq = unicode ? format("≤") : format("<=");
     return group(pp(lhs, unicode, indent) + space() + leq + line() + pp(rhs, unicode, indent));
 }
 
-format pp(level const & lhs, level const & rhs, options const & opts) {
+format pp(level_ptr lhs, level_ptr rhs, options const & opts) {
     return pp(lhs, rhs, get_pp_unicode(opts), get_pp_indent(opts));
 }
 
@@ -551,12 +552,12 @@ format pp(level const & lhs, level const & rhs, options const & opts) {
 //  - succ(l) is an immediate successor of l.
 //  - zero is the minimal element.
 // This total order is used in the normalization procedure.
-static bool is_norm_lt(level const & a, level const & b) {
+static bool is_norm_lt(level_ptr a, level_ptr b) {
     if (is_eqp(a, b)) return false;
     auto p1 = to_offset(a);
     auto p2 = to_offset(b);
-    level const & l1 = p1.first;
-    level const & l2 = p2.first;
+    level_ptr l1 = p1.first;
+    level_ptr l2 = p2.first;
     if (!is_equal(l1, l2)) {
         if (kind(l1) != kind(l2)) return kind(l1) < kind(l2);
         switch (kind(l1)) {
@@ -576,12 +577,12 @@ static bool is_norm_lt(level const & a, level const & b) {
     }
 }
 
-void push_max_args(level const & l, buffer<level> & r) {
+static void push_max_args(level_ptr l, buffer<level> & r) {
     if (is_max(l)) {
         push_max_args(max_lhs(l), r);
         push_max_args(max_rhs(l), r);
     } else {
-        r.push_back(l);
+        r.push_back(level(l));
     }
 }
 
@@ -610,28 +611,28 @@ level mk_succ(level l, unsigned k) {
     return l;
 }
 
-level normalize(level const & l) {
+level normalize(level_ptr l) {
     auto p = to_offset(l);
-    level const & r = p.first;
+    level_ptr r = p.first;
     switch (kind(r)) {
     case level_kind::Succ:
         lean_unreachable(); // LCOV_EXCL_LINE
     case level_kind::Zero:   case level_kind::Param:
     case level_kind::Global: case level_kind::Meta:
-        return l;
+        return level(l);
     case level_kind::IMax: {
         auto l1 = normalize(imax_lhs(r));
         auto l2 = normalize(imax_rhs(r));
         if (!is_eqp(l1, imax_lhs(r)) || !is_eqp(l2, imax_rhs(r)))
             return mk_succ(mk_imax(l1, l2), p.second);
         else
-            return l;
+            return level(l);
     }
     case level_kind::Max: {
         buffer<level> todo;
         buffer<level> args;
         push_max_args(r, todo);
-        for (level const & a : todo)
+        for (level_ptr a : todo)
             push_max_args(normalize(a), args);
         std::sort(args.begin(), args.end(), is_norm_lt);
         buffer<level> & rargs = todo;
@@ -677,7 +678,7 @@ level normalize(level const & l) {
     lean_unreachable(); // LCOV_EXCL_LINE
 }
 
-bool is_equivalent(level const & lhs, level const & rhs) {
+bool is_equivalent(level_ptr lhs, level_ptr rhs) {
     check_system("level constraints");
     return is_equal(lhs, rhs) || is_equal(normalize(lhs), normalize(rhs));
 }
@@ -701,7 +702,7 @@ bool is_geq_core(level l1, level l2) {
         return is_geq(p1.first, p2.first);
     return false;
 }
-bool is_geq(level const & l1, level const & l2) {
+bool is_geq(level_ptr l1, level_ptr l2) {
     return is_geq_core(normalize(l1), normalize(l2));
 }
 levels param_names_to_levels(level_param_names const & ps) {
