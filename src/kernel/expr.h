@@ -95,8 +95,8 @@ private:
     friend class expr_cell;
     expr_cell * steal_ptr() { expr_cell * r = m_ptr; m_ptr = nullptr; return r; }
     friend class optional<expr>;
-    bool operator==(expr const & other) const;
-    bool operator!=(expr const & other) const;
+    bool operator==(expr const & other) const = delete;
+    bool operator!=(expr const & other) const = delete;
 public:
     explicit expr(expr_ptr ptr):m_ptr(ptr) { if (m_ptr) m_ptr->inc_ref(); }
 

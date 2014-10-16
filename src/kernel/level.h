@@ -46,8 +46,8 @@ class level {
     friend level_cell const & to_cell(level const & l);
     friend class optional<level>;
 
-    bool operator==(level const & other) const;
-    bool operator!=(level const & other) const;
+    bool operator==(level const & other) const = delete;
+    bool operator!=(level const & other) const = delete;
 public:
     /** \brief Universe zero */
     level();
