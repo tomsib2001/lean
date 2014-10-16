@@ -134,7 +134,7 @@ public:
     operator expr_ptr() const { return m_ptr; }
 
     friend expr mk_var(unsigned idx, tag g);
-    friend expr mk_sort(level const & l, tag g);
+    friend expr mk_sort(level_ptr l, tag g);
     friend expr mk_constant(name const & n, levels const & ls, tag g);
     friend expr mk_metavar(name const & n, expr_ptr t, tag g);
     friend expr mk_local(name const & n, name const & pp_n, expr_ptr t, binder_info const & bi,
@@ -339,7 +339,7 @@ class expr_sort : public expr_cell {
     friend expr_cell;
     void dealloc();
 public:
-    expr_sort(level const & l, tag g);
+    expr_sort(level_ptr l, tag g);
     ~expr_sort();
     level const & get_level() const { return m_level; }
 };
@@ -502,7 +502,7 @@ inline expr mk_lambda(name const & n, expr_ptr t, expr_ptr e,
 inline expr mk_pi(name const & n, expr_ptr t, expr_ptr e, binder_info const & i = binder_info(), tag g = nulltag) {
     return mk_binding(expr_kind::Pi, n, t, e, i, g);
 }
-expr mk_sort(level const & l, tag g = nulltag);
+expr mk_sort(level_ptr l, tag g = nulltag);
 
 /** \brief Return <tt>Pi(x.{sz-1}, domain[sz-1], ..., Pi(x.{0}, domain[0], range)...)</tt> */
 expr mk_pi(unsigned sz, expr const * domain, expr const & range, tag g = nulltag);
@@ -711,7 +711,7 @@ expr update_binding(expr_ptr e, expr_ptr new_domain, expr_ptr new_body, binder_i
 expr update_mlocal(expr_ptr e, expr_ptr new_type);
 expr update_local(expr_ptr e, expr_ptr new_type, binder_info const & bi);
 expr update_local(expr_ptr e, binder_info const & bi);
-expr update_sort(expr_ptr e, level const & new_level);
+expr update_sort(expr_ptr e, level_ptr new_level);
 expr update_constant(expr_ptr e, levels const & new_levels);
 expr update_macro(expr const & e, unsigned num, expr const * args);
 // =======================================

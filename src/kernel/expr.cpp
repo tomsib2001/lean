@@ -231,7 +231,7 @@ void expr_binding::dealloc(expr_ptr_buffer & todelete) {
 
 // Expr Sort
 DEF_THREAD_MEMORY_POOL(get_sort_allocator, sizeof(expr_sort));
-expr_sort::expr_sort(level const & l, tag g):
+expr_sort::expr_sort(level_ptr l, tag g):
     expr_cell(expr_kind::Sort, ::lean::hash(l), false, has_meta(l), false, has_param(l), g),
     m_level(l) {
 }
@@ -350,7 +350,7 @@ expr mk_app(expr_ptr f, expr_ptr a, tag g) {
 expr mk_binding(expr_kind k, name const & n, expr_ptr t, expr_ptr e, binder_info const & i, tag g) {
     return cache(expr(new (get_binding_allocator().allocate()) expr_binding(k, n, t, e, i, g)));
 }
-expr mk_sort(level const & l, tag g) {
+expr mk_sort(level_ptr l, tag g) {
     return cache(expr(new (get_sort_allocator().allocate()) expr_sort(l, g)));
 }
 // =======================================
@@ -629,7 +629,7 @@ expr update_local(expr_ptr e, binder_info const & bi) {
     return update_local(e, mlocal_type(e), bi);
 }
 
-expr update_sort(expr_ptr e, level const & new_level) {
+expr update_sort(expr_ptr e, level_ptr new_level) {
     if (!is_eqp(sort_level(e), new_level))
         return mk_sort(new_level, e->get_tag());
     else
