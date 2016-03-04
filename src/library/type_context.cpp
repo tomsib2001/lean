@@ -359,53 +359,6 @@ bool type_context::relaxed_is_def_eq(expr const & e1, expr const & e2) {
     return is_def_eq(e1, e2);
 }
 
-static bool is_max_like(level const & l) {
-    return is_max(l) || is_imax(l);
-}
-
-lbool type_context::quick_is_def_eq(level const & l1, level const & l2) {
-    if (is_equivalent(l1, l2)) {
-        return l_true;
-    }
-
-    if (is_uvar(l1)) {
-        if (auto v = get_assignment(l1)) {
-            return quick_is_def_eq(*v, l2);
-        } else {
-            update_assignment(l1, l2);
-            return l_true;
-        }
-    }
-
-    if (is_uvar(l2)) {
-        if (auto v = get_assignment(l2)) {
-            return quick_is_def_eq(l1, *v);
-        } else {
-            update_assignment(l2, l1);
-            return l_true;
-        }
-    }
-
-    // postpone constraint if l1 or l2 is max, imax or meta.
-    if (is_max_like(l1) || is_max_like(l2) || is_meta(l1) || is_meta(l2))
-        return l_undef;
-
-    if (l1.kind() == l2.kind()) {
-        switch (l1.kind()) {
-        case level_kind::Succ:
-            return quick_is_def_eq(succ_of(l1), succ_of(l2));
-        case level_kind::Param: case level_kind::Global:
-            return l_false;
-        case level_kind::Max:   case level_kind::IMax:
-        case level_kind::Zero:  case level_kind::Meta:
-            lean_unreachable();
-        }
-        lean_unreachable();
-    } else {
-        return l_false;
-    }
-}
-
 bool type_context::full_is_def_eq(level const & l1, level const & l2) {
     if (is_equivalent(l1, l2)) {
         return true;
@@ -463,13 +416,7 @@ bool type_context::full_is_def_eq(level const & l1, level const & l2) {
 }
 
 bool type_context::is_def_eq(level const & l1, level const & l2) {
-    auto r = quick_is_def_eq(l1, l2);
-    if (r == l_undef) {
-        m_postponed.emplace_back(l1, l2);
-        return true;
-    } else {
-        return r == l_true;
-    }
+    return full_is_def_eq(l1, l2);
 }
 
 bool type_context::is_def_eq(levels const & ls1, levels const & ls2) {
@@ -827,16 +774,11 @@ bool type_context::process_assignment_core(expr const & ma, expr const & v) {
 
 bool type_context::process_assignment(expr const & ma, expr const & v) {
     scope s(*this);
-    unsigned psz = m_postponed.size();
     if (!process_assignment_core(ma, v)) {
         return false;
     }
-    if (process_postponed(psz)) {
-        m_postponed.resize(psz);
-        s.commit();
-        return true;
-    }
-    return false;
+    s.commit();
+    return true;
 }
 
 bool type_context::assign(expr const & ma, expr const & v) {
@@ -1022,59 +964,14 @@ bool type_context::is_def_eq_core(expr const & t, expr const & s) {
     return on_is_def_eq_failure(t_n, s_n);
 }
 
-bool type_context::process_postponed(unsigned old_sz) {
-    if (m_postponed.size() == old_sz)
-        return true; // no new universe constraints.
-    lean_assert(m_postponed.size() > old_sz);
-    buffer<pair<level, level>> b1, b2;
-    b1.append(m_postponed.size() - old_sz, m_postponed.data() + old_sz);
-    buffer<pair<level, level>> * curr, * next;
-    curr = &b1;
-    next = &b2;
-    while (true) {
-        for (auto p : *curr) {
-            auto r = quick_is_def_eq(p.first, p.second);
-            if (r == l_undef) {
-                next->push_back(p);
-            } else if (r == l_false) {
-                return false;
-            }
-        }
-        if (next->empty()) {
-            return true; // all constraints have been processed
-        } else if (next->size() < curr->size()) {
-            // easy constraints have been processed in this iteration
-            curr->clear();
-            std::swap(next, curr);
-            lean_assert(next->empty());
-        } else {
-            // use full (and approximate) is_def_eq to process the first constraint
-            // in next.
-            auto p = (*next)[0];
-            if (!full_is_def_eq(p.first, p.second))
-                return false;
-            if (next->size() == 1)
-                return true; // the last constraint has been solved.
-            curr->clear();
-            curr->append(next->size() - 1, next->data() + 1);
-            next->clear();
-        }
-    }
-}
-
 bool type_context::is_def_eq(expr const & e1, expr const & e2) {
     scope s(*this);
     flet<bool> in_is_def_eq(m_in_is_def_eq, true);
-    unsigned psz = m_postponed.size();
     if (!is_def_eq_core(e1, e2)) {
         return false;
     }
-    if (process_postponed(psz)) {
-        m_postponed.resize(psz);
-        s.commit();
-        return true;
-    }
-    return false;
+    s.commit();
+    return true;
 }
 
 expr type_context::infer_constant(expr const & e) {

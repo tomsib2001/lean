@@ -113,8 +113,6 @@ class type_context : public abstract_type_context {
     friend struct ext_ctx;
     environment                     m_env;
     std::unique_ptr<ext_ctx>        m_ext_ctx;
-    // postponed universe constraints
-    std::vector<pair<level, level>> m_postponed;
     name_map<projection_info>       m_proj_info;
     bool                            m_in_is_def_eq{false};
 
@@ -176,7 +174,6 @@ class type_context : public abstract_type_context {
     optional<declaration> is_delta(expr const & e);
     expr whnf_core(expr e, unsigned h);
 
-    lbool quick_is_def_eq(level const & l1, level const & l2);
     bool full_is_def_eq(level const & l1, level const & l2);
     bool is_def_eq(level const & l1, level const & l2);
     bool is_def_eq(levels const & ls1, levels const & ls2);
@@ -196,8 +193,6 @@ class type_context : public abstract_type_context {
     lbool lazy_delta_reduction(expr & t_n, expr & s_n);
     reduction_status ext_reduction_step(expr & t_n, expr & s_n);
     lbool reduce_def_eq(expr & t_n, expr & s_n);
-
-    bool process_postponed(unsigned old_sz);
 
     expr infer_constant(expr const & e);
     expr infer_macro(expr const & e);
