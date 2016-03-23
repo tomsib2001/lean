@@ -756,19 +756,25 @@ bool type_context::validate_assignment_types(expr const & m, expr const & v) {
     return is_def_eq_core(infer_metavar(m), infer(v));
 }
 
+// HACK for testing first-order fallback
+static bool g_class_synth = false;
+
 /** \brief Given \c ma of the form <tt>?m t_1 ... t_n</tt>, (try to) assign
     ?m to (an abstraction of) v. Return true if success and false otherwise. */
 bool type_context::process_assignment_core(expr const & ma, expr const & v) {
     buffer<expr> args;
     expr const & m = get_app_args(ma, args);
     buffer<expr> locals;
+    bool use_fo = false;
     for (expr & arg : args) {
         expr new_arg = arg;
         // try to instantiate
         if (is_meta(new_arg))
             new_arg = instantiate_uvars_mvars(arg);
-        if (!is_local(new_arg))
+        if (!is_local(new_arg)) {
+            use_fo = true;
             break; // it is not local
+        }
         arg = new_arg;
         lean_assert(is_local(arg));
         if (std::any_of(locals.begin(), locals.end(), [&](expr const & local) {
@@ -778,6 +784,26 @@ bool type_context::process_assignment_core(expr const & ma, expr const & v) {
     }
     lean_assert(is_mvar(m));
     expr new_v = instantiate_uvars_mvars(v);
+
+    if (use_fo && g_class_synth) {
+       /* Use first-order unification.
+          Workaround A5. */
+        buffer<expr> new_v_args;
+        expr const & new_v_fn = get_app_args(new_v, new_v_args);
+        if (args.size() > new_v_args.size())
+            return false;
+        lean_assert(new_v_args.size() >= args.size());
+        expr new_m = mk_app(m, new_v_args.size() - args.size(), args.data());
+        if (!is_def_eq_core(new_m, new_v_fn))
+            return false;
+        unsigned i = new_v_args.size() - args.size();
+        unsigned j = 0;
+        for (; j < new_v_args.size(); i++, j++) {
+            if (!is_def_eq_core(args[i], new_v_args[j]))
+                return false;
+        }
+        return true;
+    }
 
     if (!validate_assignment(m, locals, v))
         return false;
@@ -1829,6 +1855,7 @@ optional<expr> type_context::ensure_no_meta(optional<expr> r) {
 }
 
 optional<expr> type_context::mk_class_instance_core(expr const & type) {
+    flet<bool> set(g_class_synth, true);
     if (!m_ci_multiple_instances) {
         /* We do not cache results when multiple instances have to be generated. */
         auto it = m_ci_cache.find(type);
