@@ -23,7 +23,7 @@ variable [decidable_eq G]
 
 definition finset_mul_closed_on [reducible] (H : finset G) : Prop :=
            ∀ x y : G, x ∈ H → y ∈ H → x * y ∈ H
-definition finset_has_inv (H : finset G) : Prop :=
+definition finset_has_inv [reducible] (H : finset G) : Prop :=
            ∀ a : G, a ∈ H → a⁻¹ ∈ H
 
 structure is_finsubg [class] (H : finset G) : Type :=
