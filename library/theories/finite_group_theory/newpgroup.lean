@@ -14,6 +14,14 @@ begin
 rewrite image_insert
 end
 
+lemma mem_insert_empty {A : Type} [hA: decidable_eq A] {a x : A} : x ∈ (insert a ∅) → x = a :=
+  assume Hmem,
+  or.elim (eq.subst (mem_insert_eq x a ∅) Hmem)
+  (λ x, x)
+  begin
+    intro Habs,
+    exact false.elim (not_mem_empty a Habs)
+  end
 
 lemma insert_empty {A : Type} [hAdec : decidable_eq A] (a : A) (b : A) : finset.insert a finset.empty = insert b empty → a = b :=
 assume Heq_set,
@@ -38,7 +46,10 @@ begin
   rewrite to_set_insert,
   rewrite to_set_empty,
   intro Hx,
-  apply sorry
+  have H1 : x = 1,
+  from mem_insert_empty Hx,
+  rewrite H1,
+  exact finsubg_has_one A
   end
 
 lemma card1 : card ('{(1:G)}) = 1 :=
@@ -67,7 +78,7 @@ reveal decidable_is_finsubg_prop
 
 end groups_missing
 
-
+-- should we enforce H being a group at this point ?
 definition pgroup [reducible] (pi : ℕ → Prop) (H : finset G) := is_pi_nat pi (card H)
 
 lemma pgroup_dec (pi : ℕ → Prop) [Hdecpi : ∀ p, decidable (pi p)] (H : finset G) :
