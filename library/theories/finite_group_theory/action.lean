@@ -390,6 +390,28 @@ is_iso_class.mk action_by_lmul_hom action_by_lmul_inj
 
 end cayley
 
+section conjugation_action
+
+variables {G : Type} [group G] [fintype G]
+
+definition action_by_conj : G → perm G :=
+take g, perm.mk (conj_by g) (conj_inj g)
+
+variable [decidable_eq G]
+
+lemma action_by_conj_hom : homomorphic (@action_by_conj G _ _) := take g1 g2,
+-- calc
+--   action_by_conj (g1 * g2) = (λ g, (g1 * g2) * g * (g1 * g2)⁻¹) : rfl
+  -- ...                      = action_by_conj g1 * action_by_conj g2 : sorry
+sorry
+
+lemma action_by_conj_inj : injective (@action_by_conj G _ _) := sorry
+
+lemma action_by_conj_is_iso [instance] : is_iso_class (@action_by_conj G _ _) :=
+is_iso_class.mk action_by_conj_hom action_by_conj_inj
+
+end conjugation_action
+
 section lcosets
 open fintype subtype
 
