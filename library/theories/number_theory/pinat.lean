@@ -107,6 +107,48 @@ parameter pi : nat -> Prop
 
 -- include Hdecpi
 
+lemma coprime_pi_pi' {pi} {m n} (Hpi : is_pi_nat pi m) (Hpi' : is_pi'_nat pi n) : coprime m n :=
+      have Hgcd1 : gcd m n = 1, from
+      sorry,
+      sorry
+
+lemma pi_pi'_coprime {pi} {m n} (Hpi : is_pi_nat pi m) (Hcop : coprime m n) : is_pi'_nat pi n :=
+      sorry
+
+lemma pinat_dvd {pi} {m n : ℕ} : dvd m n → is_pi_nat pi n → is_pi_nat pi m :=
+assume Hdvd Hpin,
+ and.intro
+ (pos_of_dvd_of_pos Hdvd (and.left Hpin))
+ (take p Hpm,
+   have H1 : p ∣ m, from (dvd_of_mem_prime_factors Hpm),
+   have H2 : p ∈ prime_factors n,
+   from
+   (mem_prime_factors
+    (and.left Hpin)
+    (prime_of_mem_prime_factors Hpm)
+    (dvd.trans H1 Hdvd)
+   ),
+   (and.right Hpin p H2)
+ )
+
+lemma pinat_mul {pi} {m n : ℕ} : is_pi_nat pi (m * n) ↔ is_pi_nat pi m ∧ is_pi_nat pi n :=
+  iff.intro
+  (take Hmn,
+   and.intro
+    (pinat_dvd (dvd_mul_right m n) Hmn)
+    (pinat_dvd (dvd_mul_left n m) Hmn)
+  )
+  (take Handmn,
+  have Hm : _, from and.left Handmn,
+  have Hn : _, from and.right Handmn,
+  and.intro (multgt0_gt0 (and.left Hm) (and.left Hn))
+  (take p Hpmn,
+  have Hprime : prime p, from (prime_of_mem_prime_factors Hpmn),
+  have Hdvd : p ∣ m * n, from (dvd_of_mem_prime_factors Hpmn),
+   or.elim (dvd_or_dvd_of_prime_of_dvd_mul Hprime Hdvd)
+  (λ Hm1, (and.right Hm) p (mem_prime_factors (and.left Hm) Hprime Hm1))
+  (λ Hn1, (and.right Hn) p (mem_prime_factors (and.left Hn) Hprime Hn1))))
+
 
 lemma ProdEmpty_gt0 {A : Type} [decidable_eq A] (f : A → nat) : (∏ p ∈ (∅ : finset A), f p) > (0 : nat) :=
   have H : (∏ p ∈ (∅ : finset A), f p) = 1, from !Prod_empty,
