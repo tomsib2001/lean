@@ -1,13 +1,58 @@
-import data algebra.group .subgroup .finsubg theories.number_theory.pinat .cyclic
+import data algebra.group .subgroup .finsubg theories.number_theory.pinat .cyclic .perm
 
 open nat finset fintype group_theory
 
 -- useful for debugging
-set_option formatter.hide_full_terms false
+-- set_option formatter.hide_full_terms false
 
 definition pred_p [reducible] (p : nat) : nat → Prop := λ n, n = p
 
 section set_missing
+
+section minmax
+
+variables [T : Type] [HfT : fintype T] [Hdeceq : decidable_eq T]
+
+include Hdeceq HfT
+
+definition minSet (P : finset T → Prop) (A : finset T) :=
+  ∀ (B : finset T), subset B A → (P B ↔ B = A)
+
+lemma minsetp (P : finset T → Prop) (A : finset T) (HminSet : minSet P A) : P A :=
+  iff.elim_right (HminSet A (subset.refl A)) (!rfl)
+
+lemma minsetinf (P : finset T → Prop) (A B : finset T) (HminSet : minSet P A) (HPB : P B)
+(Hsubset : subset B A) : B = A :=
+  iff.elim_left (HminSet B Hsubset) HPB
+
+-- it seems unecessary in our case (but not sure)
+-- lemma ex_minset (P : finset T → Prop) :  → exists A, P A
+
+lemma minSet_exists (P : finset T → Prop) (C : finset T) (HPC : P C) :
+  exists A, minSet P A ∧ subset A C :=
+  -- let P1 := λ S, (exists T, subset T S ∧ P T) → exists T, minSet P T ∧ subset T S in
+  have HC : exists T, subset T C ∧ P T, from exists.intro C (and.intro (!subset.refl) HPC),
+  have HInd : forall S, (exists T, subset T S ∧ P T) → exists T, minSet P T ∧ subset T S, from
+  finset.induction
+  (assume Hempty : (exists T, subset T ∅ ∧ P T),
+    exists.intro ∅
+      (and.intro
+        (take B HBinEmpty,
+         have HBempty : B = ∅, from iff.elim_left (subset_empty_iff B) HBinEmpty,
+            iff.intro
+              (λ HPB, HBempty)
+              (λ (Heq : B = ∅), sorry))
+        (!subset.refl))
+  )
+  (take a s Hnas HIP Hpas,
+  sorry)
+  ,
+  (HInd C HC)
+
+definition maxSet (P : finset T → Prop) (A : finset T) :=
+  minSet (λ B, P (compl B)) (compl A)
+
+end minmax
 
 lemma image_singleton {A B : Type} [hA: decidable_eq A] [hB: decidable_eq B] (f : A → B) (a : A) :
 image f (insert a empty) =  insert (f a) empty :=
@@ -190,11 +235,45 @@ definition Syl [reducible] (p : nat) (A : finset G) :=
 { S ∈ finset.powerset A | is_finsubg_prop S ∧ pHall (pred_p p) S A }
 
 -- Definition Sylow A B := p_group B && Hall A B.
-definition is_sylow p (A B : finset G) := pgroup (pred_p p) A ∧ Hall A B
+definition is_sylow p (A B : finset G) := pgroup (pred_p p) A ∧ Hall A B ∧ is_finsubg_prop A
 
 definition is_in_Syl [class] (p : nat) (A S : finset G) := S ∈ Syl p A
 
 end sylows
+
+lemma Hall_of_pHall (pi : ℕ → Prop) [Hdecpi : ∀ p, decidable (pi p)] (A B : finset G) : pHall pi A B → Hall A B :=
+  assume HpHall : pHall pi A B,
+  (and.intro (and.left HpHall)
+  (
+    have H_pi_A : is_pi_nat pi (card A), from and.left (and.right HpHall),
+    have H_pi'_indAB : is_pi'_nat pi (index A B), from and.right (and.right HpHall),
+    coprime_pi_pi' H_pi_A H_pi'_indAB
+  ))
+
+
+lemma equiv_Syl_is_Syl p (S A : finset G) : S ∈ Syl p A ↔ is_sylow p S A :=
+  iff.intro
+  (assume Hmem,
+  have HS : is_finsubg_prop S ∧ pHall (pred_p p) S A, from of_mem_sep Hmem,
+  and.intro
+  (and.left (and.right(and.right HS)))
+  (and.intro
+  (Hall_of_pHall (pred_p p) S A (and.right HS))
+  (and.left HS)
+  )
+  )
+  (assume H_syl,
+  have H1 : is_pi_nat (pred_p p) (card S), from and.left H_syl,
+  have H2 :(subset S A ∧ coprime (finset.card S) (index S A)), from (and.left (and.right H_syl)),
+  have H3 : is_finsubg_prop S, from and.right (and.right H_syl),
+  mem_sep_of_mem
+  (mem_powerset_of_subset (and.left H2))
+  (
+  have Hsub : subset S A, from and.left H2,
+  have Hpgroup : pgroup (pred_p p) S, from H1,
+  have Hpi' : is_pi'_nat (pred_p p) (index S A), from pi_pi'_coprime H1 (and.right H2),
+  and.intro H3 (and.intro Hsub (and.intro Hpgroup Hpi')))
+  )
 
 lemma sylow_finsubg_prop [instance] (p : nat) (A : finset G) (S : finset G)  [HSyl : is_in_Syl p A S] : is_finsubg_prop S :=
   and.left (of_mem_sep HSyl)
@@ -204,13 +283,31 @@ reveal is_finsub_is_finsubg_prop
 definition sylow_is_finsubg [instance] (p : nat) (A S : finset G) [HSyl : is_in_Syl p A S] : is_finsubg S
 := is_finsub_is_finsubg_prop (sylow_finsubg_prop p A S)
 
--- variables (p : nat) (A S : finset G) (H : S ∈ Syl p A)
--- include H
-
--- set_option pp.implicit true
 
 example (p : nat) (A S : finset G) (H : is_in_Syl p A S)
 : is_finsubg S := _ -- @sylow_is_finsubg G _ _ _ p A S H  --(sylow_is_finsubg _)
+
+
+section action_by_conj
+
+definition ftfg [instance] : fintype (finset G) := sorry --shouldn't this be inferred by the typeclass mechanism?
+
+definition conj_subsets : G → group_theory.perm (finset G) :=
+  λ (g : G), perm.mk (λ H, image (conj_by g) H)
+  (take H1 H2,
+    sorry -- should be easy
+  )
+
+set_option pp.implicit true
+
+-- lemma tr_conj_subsets (A S1 S2 : finset G):  exists (g : G), @perm.f (conj_subsets g) S1 = S2 := sorry
+
+-- let us try to define the action of G by conjugation on a subset
+
+-- definition action_by_conj (A : finset G) [Hsubg : is_finsubg A] (a : A) : perm A :=
+--   take b, lmul_by a (rmul_by a⁻¹ b)
+
+end action_by_conj
 
 -- only true if they actually are groups
 lemma pgroupS {pi : ℕ → Prop} {H1 H2 : finset G} [H1gr : is_finsubg H1] [ H2gr : is_finsubg H2] :
