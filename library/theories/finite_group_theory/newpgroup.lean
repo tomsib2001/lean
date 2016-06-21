@@ -429,14 +429,18 @@ section sylows
 
 -- the set of p-Sylows of a subset A
 definition Syl [reducible] (p : nat) (A : finset G) :=
-{ S ∈ finset.powerset A | is_finsubg_prop S ∧ pHall (pred_p p) S A }
+{ S ∈ finset.powerset A | is_finsubg_prop G S ∧ pHall (pred_p p) S A }
 
 -- Definition Sylow A B := p_group B && Hall A B.
-definition is_sylow p (A B : finset G) := pgroup (pred_p p) A ∧ Hall A B ∧ is_finsubg_prop A
+definition is_sylow p (A B : finset G) := pgroup (pred_p p) A ∧ Hall A B ∧ is_finsubg_prop G A
 
 definition is_in_Syl [class] (p : nat) (A S : finset G) := S ∈ Syl p A
 
 end sylows
+
+lemma pgroup_card (p : nat) (H : finset G) : pgroup (pred_p p) H → exists n, card H = p^n :=
+  assume Hpgroup,
+  sorry
 
 lemma Hall_of_pHall (pi : ℕ → Prop) [Hdecpi : ∀ p, decidable (pi p)] (A B : finset G) : pHall pi A B → Hall A B :=
   assume HpHall : pHall pi A B,
@@ -479,6 +483,16 @@ reveal is_finsub_is_finsubg_prop
 
 definition sylow_is_finsubg [instance] (p : nat) (A S : finset G) [HSyl : is_in_Syl p A S] : is_finsubg S
 := is_finsub_is_finsubg_prop (sylow_finsubg_prop p A S)
+
+lemma syl_is_max_pgroup (p : nat) (A S : finset G) : is_in_Syl p A S ↔ maxSet (λ B, pgroup (pred_p p) B) S :=
+  iff.intro
+  (assume HSyl,
+  iff.elim_right (maxSet_iff (λ B, pgroup (pred_p p) B) S)
+  (take B HSB,
+   iff.intro
+   (sorry)
+   (sorry)))
+  (sorry)
 
 
 example (p : nat) (A S : finset G) (H : is_in_Syl p A S)
