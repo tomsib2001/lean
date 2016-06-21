@@ -273,46 +273,65 @@ end set_missing
 -- -- we can now talk about g : G
 -- example (FG : Fingroup) (g : FG) : g * 1  = g := mul_one g
 
+definition is_finsubg_prop [class] (G : Type) [ambientG : group G]
+[deceqG : decidable_eq G] (A : finset G) : Prop :=
+  1 ∈ A ∧ finset_mul_closed_on A ∧ finset_has_inv A
+
 
 -- structure fin_subg [class] (G : Type) [ambientG : group G]
 -- [deceqG : decidable_eq G] (H : finset G) extends is_finsubg H :=
 -- [finG : fintype G]
 
--- structure Fin_subg (G : Type) [ambientG : group G]
--- [deceqG : decidable_eq G] := (carrier : finset G) (struct : fin_subg G carrier)
+structure Fin_subg (G : Type) [ambientG : group G]
+[deceqG : decidable_eq G] := (carrier : finset G) (struct : is_finsubg_prop G carrier)
 
--- attribute Fin_subg.carrier [coercion] [reducible]
--- attribute Fin_subg.struct [instance] [reducible]
+attribute Fin_subg.carrier [coercion] [reducible]
+attribute Fin_subg.struct [instance] [reducible]
 
--- -- of course this does not work, we need to make it apparent that
--- -- Fin_subg G is a finite type
+-- of course this does not work, we need to make it apparent that
+-- Fin_subg G is a finite type
 
--- -- how does Mathcomp do this? It seems that fingrouptype is an extension of fintype,
--- -- and that {group gT} is an extension of {set gT}
+-- how does Mathcomp do this? It seems that fingrouptype is an extension of fintype,
+-- and that {group gT} is an extension of {set gT}
 
--- lemma struct_irrelevant (G : Type) [ambientG : group G]
--- [deceqG : decidable_eq G] (H : finset G) (fsg1 : fin_subg G H) (fsg2 : fin_subg G H) :
---   fsg1 = fsg2 := sorry
+lemma struct_irrelevant (G : Type) [ambientG : group G]
+[deceqG : decidable_eq G] (H : finset G) (fsg1 : is_finsubg_prop G H) (fsg2 : is_finsubg_prop G H) :
+  fsg1 = fsg2 := rfl
 
--- lemma injective_projection (G : Type) [ambientG : group G]
--- [deceqG : decidable_eq G] -- (H1 H2 : Fin_subg G)
--- :
---   function.injective (@Fin_subg.carrier G ambientG deceqG) := sorry
---   -- take (H1 : Fin_subg G) (H2 : Fin_subg G) Heq,
---   -- have foo : Fin_subg.struct H1 = (eq.subst Heq (Fin_subg.struct H2)), from struct_irrelevant G (Fin_subg.carrier H1) H1 H2,
---   _
---     -- @Fin_subg.rec_on G _ _ (λ x, @Fin_subg.carrier G _ _ H1 = @Fin_subg.carrier G _ _ x → H1 = x) H2 (take c s, _)
+lemma injective_projection (G : Type) [ambientG : group G]
+[deceqG : decidable_eq G] -- (H1 H2 : Fin_subg G)
+:
+  function.injective (@Fin_subg.carrier G ambientG deceqG) :=
+  take (H2 : Fin_subg G) (H1 : Fin_subg G),
+  -- have foo : Fin_subg.struct H1 = eq.substr Heq (Fin_subg.struct H2), from rfl,
+  Fin_subg.rec_on H1 (Fin_subg.rec_on H2
+  (take c1 p1 c2 p2 Heq,
+  begin
+   have Heqc : c1 = c2, from Heq,
+   clear Heq,
+   revert p1,
+   rewrite Heqc,
+   intro p1,
+   reflexivity
+  end
+--   have H1 : Fin_subg.carrier (Fin_subg.mk c1 p1) = c1, from rfl,
+--   have H2 : Fin_subg.carrier (Fin_subg.mk c2 p2) = c2, from rfl,
+-- -- have Heqc : c1 = c2, from Heq,
+--   eq.subst H1 (eq.subst H2 (_))
+  ))
 
--- lemma finSubGroups [instance] (G : Type) [ambientG : group G]
--- [deceqG : decidable_eq G] : fintype (Fin_subg G) := sorry
+    -- @Fin_subg.rec_on G _ _ (λ x, @Fin_subg.carrier G _ _ H1 = @Fin_subg.carrier G _ _ x → H1 = x) H2 (take c s, _)
+
+lemma finSubGroups [instance] (G : Type) [ambientG : group G]
+[deceqG : decidable_eq G] : fintype (Fin_subg G) := sorry
 
 -- definition all_subgroups (G : Type) [ambientG : group G]
--- [deceqG : decidable_eq G] : @finset.univ (finSubGroups G)
+-- [deceqG : decidable_eq G] : @finset.univ (finSubGroups G) := sorry
 
--- example : ∀ (G : Type) [ambientG : group G]
--- [deceqG : decidable_eq G] , decidable (∀ (H : Fin_subg G), 1 ∈ H) :=
--- take G aG decG,
---   decidable_forall_finite
+example : ∀ (G : Type) [ambientG : group G]
+[deceqG : decidable_eq G] , decidable (∀ (H : Fin_subg G), 1 ∈ H) :=
+take G aG decG,
+  decidable_forall_finite
 
 
 -- how can we talk about the set of all (automatically finite) subgroups of FG?
@@ -353,18 +372,18 @@ calc
   ...         = (x * 1)        : rfl
   ...         = x              : !mul_one
 
-definition is_finsubg_prop [class] (A : finset G) : Prop :=
-  1 ∈ A ∧ finset_mul_closed_on A ∧ finset_has_inv A
+-- definition is_finsubg_prop [class] (A : finset G) : Prop :=
+--   1 ∈ A ∧ finset_mul_closed_on A ∧ finset_has_inv A
 
 attribute is_finsubg_prop [reducible]
 
-lemma is_finsub_is_finsubg_prop {A : finset G} : is_finsubg_prop A → is_finsubg A :=
+lemma is_finsub_is_finsubg_prop {A : finset G} : is_finsubg_prop G A → is_finsubg A :=
   assume H,
   is_finsubg.mk (and.left H) (and.left (and.right H)) (and.right (and.right H))
 
 local attribute finset_has_inv [reducible]
 
-lemma decidable_is_finsubg_prop [instance] {A : finset G} : decidable (is_finsubg_prop A) := _
+lemma decidable_is_finsubg_prop [instance] {A : finset G} : decidable (is_finsubg_prop G A) := _
 
 reveal decidable_is_finsubg_prop
 
@@ -398,6 +417,7 @@ definition Hall [reducible] (A B : finset G) :=
 subset A B ∧ coprime (card A) (index A B)
 
 include Hdecpi
+
 lemma pgroup_dec (H : finset G) : decidable (pgroup H) := _
 
 definition pHall [reducible] (A B : finset G) :=
@@ -431,7 +451,7 @@ lemma Hall_of_pHall (pi : ℕ → Prop) [Hdecpi : ∀ p, decidable (pi p)] (A B 
 lemma equiv_Syl_is_Syl p (S A : finset G) : S ∈ Syl p A ↔ is_sylow p S A :=
   iff.intro
   (assume Hmem,
-  have HS : is_finsubg_prop S ∧ pHall (pred_p p) S A, from of_mem_sep Hmem,
+  have HS : is_finsubg_prop G S ∧ pHall (pred_p p) S A, from of_mem_sep Hmem,
   and.intro
   (and.left (and.right(and.right HS)))
   (and.intro
@@ -442,7 +462,7 @@ lemma equiv_Syl_is_Syl p (S A : finset G) : S ∈ Syl p A ↔ is_sylow p S A :=
   (assume H_syl,
   have H1 : is_pi_nat (pred_p p) (card S), from and.left H_syl,
   have H2 :(subset S A ∧ coprime (finset.card S) (index S A)), from (and.left (and.right H_syl)),
-  have H3 : is_finsubg_prop S, from and.right (and.right H_syl),
+  have H3 : is_finsubg_prop G S, from and.right (and.right H_syl),
   mem_sep_of_mem
   (mem_powerset_of_subset (and.left H2))
   (
@@ -452,7 +472,7 @@ lemma equiv_Syl_is_Syl p (S A : finset G) : S ∈ Syl p A ↔ is_sylow p S A :=
   and.intro H3 (and.intro Hsub (and.intro Hpgroup Hpi')))
   )
 
-lemma sylow_finsubg_prop [instance] (p : nat) (A : finset G) (S : finset G)  [HSyl : is_in_Syl p A S] : is_finsubg_prop S :=
+lemma sylow_finsubg_prop [instance] (p : nat) (A : finset G) (S : finset G)  [HSyl : is_in_Syl p A S] : is_finsubg_prop G S :=
   and.left (of_mem_sep HSyl)
 
 reveal is_finsub_is_finsubg_prop
