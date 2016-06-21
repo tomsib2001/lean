@@ -21,6 +21,29 @@ definition minSet (P : finset T → Prop) (A : finset T) :=
 lemma minsetp (P : finset T → Prop) (A : finset T) (HminSet : minSet P A) : P A :=
   iff.elim_right (HminSet A (subset.refl A)) (!rfl)
 
+lemma minset_imp (P1 P2 : finset T → Prop) (A : finset T) :
+  (∀ B, P1 B ↔ P2 B) → (minSet P1 A → minSet P2 A) :=
+  assume Hequiv,
+  assume HP1,
+   take B HBA,
+   iff.intro
+   (assume P2B : P2 B, (iff.elim_left (HP1 B HBA)) (iff.elim_right (Hequiv B) P2B))
+   (
+   assume Heq : B = A,
+   begin
+   have HP1A : P1 A, from (minsetp P1 A HP1),
+   apply (iff.elim_left (Hequiv B)),
+   exact (eq.substr Heq HP1A)
+   end
+   )
+
+lemma minset_eq (P1 P2 : finset T → Prop) (A : finset T) :
+  (∀ B, P1 B ↔ P2 B) → (minSet P1 A ↔ minSet P2 A) :=
+  assume Hequiv,
+  iff.intro
+  (assume HP1, minset_imp P1 P2 A Hequiv HP1)
+  (assume HP2, minset_imp P2 P1 A (take B, iff.symm (Hequiv B)) HP2)
+
 lemma minsetinf (P : finset T → Prop) (A B : finset T) (HminSet : minSet P A) (HPB : P B)
 (Hsubset : subset B A) : B = A :=
   iff.elim_left (HminSet B Hsubset) HPB
@@ -28,29 +51,183 @@ lemma minsetinf (P : finset T → Prop) (A B : finset T) (HminSet : minSet P A) 
 -- it seems unecessary in our case (but not sure)
 -- lemma ex_minset (P : finset T → Prop) :  → exists A, P A
 
-lemma minSet_exists (P : finset T → Prop) (C : finset T) (HPC : P C) :
+lemma in_empty_empty (A : finset T) : subset A ∅ → A = ∅ :=
+ λ H, iff.elim_left (subset_empty_iff A) H
+
+lemma minSet_empty (P : finset T → Prop) (Hempty : P ∅) : minSet P ∅ :=
+  take B HBinEmpty,
+  have HBempty : B = ∅, from in_empty_empty B HBinEmpty,
+  iff.intro
+  (assume HPB, HBempty) (assume Heq : B = ∅, eq.substr Heq Hempty)
+
+lemma helper_lemma (P : finset T → Prop) : (exists U, subset U ∅ ∧ P U) → exists U, minSet P U ∧ subset U ∅ :=
+  assume (H : (exists U, subset U ∅ ∧ P U)),
+  obtain (U : finset T) (HU : subset U ∅ ∧ P U), from H,
+  have Hempty : U = ∅, from iff.elim_left (subset_empty_iff U) (and.left HU),
+  have HPU : P U, from (and.right HU),
+  exists.intro U (and.intro (eq.substr Hempty (minSet_empty P (eq.subst Hempty HPU))) (and.left HU))
+
+-- lemma subset_insert_eq_or_strict a (s t : finset T) :
+--   s ⊆ (insert a t) ↔ s = insert a t ∨ s ⊆ t :=
+--   sorry
+
+-- variables (P : nat → Prop) [HdecP : forall A, decidable (P A)]
+-- include HdecP
+
+-- lemma decidable_exminP [instance] (n : nat) : decidable (exists m, m ≤ n ∧ P m ∧ ∀ k, k ≤ n → k < m → ¬ P k) := sorry
+
+definition smallest (P : nat → Prop) [HdecP : forall A, decidable (P A)]
+(n : nat)  : P n → exists m, m ≤ n ∧ P m ∧ ∀ k, k ≤ n → k < m → ¬ P k :=
+  have Hgeneral : ∀ p, p ≤ n → P p → exists m, m ≤ p ∧ P m ∧ ∀ k, k ≤ n → k < m → ¬ P k, from sorry,
+  Hgeneral n (nat.le_refl n)
+
+  -- nat.induction_on n (assume P0, exists.intro 0 (and.intro (zero_le 0) (and.intro P0 (λ k Hkle Hklt, false.elim (iff.elim_left (lt_zero_iff_false k) Hklt)))))
+  -- (take n HIN HPn,
+  --   if Hex: exists m,  m ≤ n ∧ P m ∧ (∀ (k : nat), k < m → ¬ P k) then
+  --     (obtain m Hm, from Hex,
+  --       exists.intro m
+  --       (and.intro
+  --       (le_succ_of_le (and.left Hm))
+  --       (and.intro (and.left (and.right Hm))
+  --        (take k Hk1 Hk2, and.right (and.right (Hm)) k Hk2))))
+  --   else
+  --     (exists.intro (succ n)
+  --      (and.intro
+  --      (nat.le_refl (succ n))
+  --      (and.intro
+  --      HPn
+  --      (take k HlekSn HltkSn, _))))
+  -- )
+
+-- definition get_minset : forall (P : finset T → Prop) (C : finset T) (HPC : P C), Prop
+-- | get_minset P C HPC := if card C = 0 then true else false
+
+lemma minSet_exists (P : finset T → Prop) [HdecP : forall A, decidable (P A)](C : finset T) (HPC : P C) :
   exists A, minSet P A ∧ subset A C :=
-  -- let P1 := λ S, (exists T, subset T S ∧ P T) → exists T, minSet P T ∧ subset T S in
-  have HC : exists T, subset T C ∧ P T, from exists.intro C (and.intro (!subset.refl) HPC),
-  have HInd : forall S, (exists T, subset T S ∧ P T) → exists T, minSet P T ∧ subset T S, from
-  finset.induction
-  (assume Hempty : (exists T, subset T ∅ ∧ P T),
-    exists.intro ∅
-      (and.intro
-        (take B HBinEmpty,
-         have HBempty : B = ∅, from iff.elim_left (subset_empty_iff B) HBinEmpty,
-            iff.intro
-              (λ HPB, HBempty)
-              (λ (Heq : B = ∅), sorry))
-        (!subset.refl))
-  )
-  (take a s Hnas HIP Hpas,
-  sorry)
-  ,
-  (HInd C HC)
+  -- let P1 := λ (n : nat) , exists (A : finset T), finset.card A = n ∧ minSet P A ∧ A ⊆ C in
+  -- let n := card C in
+  -- have Hdec : ∀ A, decidable ((λ n, ∃ A, card A = n ∧ minSet P A ∧ A ⊆ C) A), from sorry,
+  -- let H1 := smallest P1 n (exists.intro C (and.intro (rfl) (and.intro _ _))) in
+  sorry
+
+
+  -- have HC : exists T, subset T C ∧ P T, from exists.intro C (and.intro (!subset.refl) HPC),
+  -- have HInd : forall S, (exists T, subset T S ∧ P T) → exists T, minSet P T ∧ subset T S, from
+  -- finset.induction
+  -- (!helper_lemma)
+  -- (take a s (Hnas : ¬ a ∈ s) HIP Hpas,
+  --    have decidable (∃ T1, T1 ⊆ s ∧ P T1), from sorry, -- typeclasses anyone?
+  --    if Hs : exists T1, subset T1 s ∧ P T1 then
+  --      (have Hs1 : exists T1, minSet P T1 ∧ T1 ⊆ s, from HIP Hs,
+  --      obtain T1 (Hs2 : minSet P T1 ∧ T1 ⊆ s), from Hs1,
+  --      have HT1s : T1 ⊆ s, from and.right Hs2,
+  --      have HT1as : T1 ⊆ (insert a s), from
+  --      (subset.trans HT1s (subset_insert s a) : T1 ⊆ insert a s),
+  --      exists.intro T1
+  --        (and.intro
+  --          (and.left Hs2)
+  --          HT1as))
+  --    else
+  --      (exists.intro
+  --      (insert a s)
+  --      (and.intro
+  --      (
+  --        assume B (HB : subset B (insert a s)),
+  --        iff.intro
+  --          (assume HPB,_
+  --          -- or.elim (iff.elim_left (subset_insert_eq_or_strict a B s) HB)
+  --          -- (λ x, x)
+  --          -- (assume HBs,
+  --          -- have Habsurd : exists T1, T1 ⊆ s ∧ P T1, from
+  --          -- exists.intro B (and.intro HBs HPB),
+  --          -- absurd Habsurd Hs)
+  --          )
+  --          (assume Heq,
+  --           obtain T1 (HT1), from Hpas,
+  --           or.elim
+  --             (iff.elim_left (subset_insert_eq_or_strict a T1 s) (and.left HT1))
+  --             (
+  --             assume Heq1,
+  --             have Heq2 : T1 = B, from eq.substr Heq (Heq1),
+  --             eq.subst Heq2 (and.right HT1)
+  --             )
+  --             (assume HT1s : T1 ⊆ s,
+  --             have HT : exists T1, minSet P T1 ∧ T1 ⊆ s,
+  --             from HIP (exists.intro T1 (and.intro HT1s (and.right HT1))),
+  --             have Habsurd : exists T1, T1 ⊆ s ∧ P T1, from
+  --             exists.intro T1 (and.intro HT1s (and.right HT1)),
+  --             absurd Habsurd Hs
+  --             )
+  --          )
+  --      )
+  --      (!subset.refl)
+  -- ))
+  -- )
+  -- ,
+  -- (HInd C HC)
 
 definition maxSet (P : finset T → Prop) (A : finset T) :=
   minSet (λ B, P (compl B)) (compl A)
+
+lemma maxset_eq (P1 P2 : finset T → Prop) (A : finset T) :
+  (∀ B, P1 B ↔ P2 B) → (maxSet P1 A ↔ maxSet P2 A) :=
+  begin
+  intro HP1P2,
+  apply minset_eq,
+  intro B,
+  apply HP1P2
+  end
+
+print compl
+print diff
+
+-- why is this hard to prove?
+lemma missing_compl_compl (A : finset T) : finset.compl (finset.compl A) = A :=
+  sorry
+   -- eq_of_subset_of_subset
+   -- (subset_of_forall
+   -- (take (a : T) Hnna,
+   --  have H : _, from set.compl_compl A,
+   --  have set.compl (ts A) = compl A, from _,
+    -- have Ha : a ∈ compl (compl (ts A)), from Hnna,
+    _
+   --))
+   _
+   -- eq_of_subset_of_subset
+   -- (subset_of_forall
+   -- (take a Hnna,
+   --  have Hna : ¬ a ∈ (finset.compl A), from not_mem_of_mem_compl Hnna,
+   --  _
+   -- )
+   -- )
+   --  _
+
+lemma maxsetp (P : finset T → Prop) (A : finset T) : maxSet P A → P A :=
+ assume H : minSet (λ B, P (finset.compl B)) (finset.compl A),
+ have H1 : (λ B, P (-B)) (-A), from minsetp (λ B, P (finset.compl B)) (finset.compl A) H,
+ eq.subst (missing_compl_compl A) H1
+
+-- can't find the two lemmas which would make this easy
+lemma maxsetsup (P : finset T → Prop) (A B : finset T) : maxSet P A → P B → A ⊆ B → B = A :=
+  assume (Hmax : maxSet P A) HPB HsAB,
+  have H : _, from minsetinf (λ B, P (compl B)) (compl A) (compl B) Hmax (eq.substr (missing_compl_compl B) HPB) sorry,
+  sorry
+
+lemma maxSet_exists (P : finset T → Prop) [HdecP : forall A, decidable (P A)](C : finset T) (HPC : P C) :
+  exists A, maxSet P A ∧ subset C A :=
+  have H : _,  from minSet_exists (λ B, P (compl B)) (compl C) (eq.substr (missing_compl_compl C) HPC),
+  obtain A HA, from H,
+  exists.intro (compl A)
+  (and.intro
+  (eq.substr (missing_compl_compl A) (and.left HA))
+  sorry)
+
+lemma maxSet_iff (P : finset T → Prop) (A : finset T) : maxSet P A ↔ (∀ B, A ⊆ B → (P B ↔ B = A)) :=
+  iff.intro
+  (assume HmaxSet,
+  sorry)
+  (assume Hdef,
+   sorry)
 
 end minmax
 
