@@ -1,13 +1,19 @@
-import data algebra.group .subgroup .finsubg theories.number_theory.pinat .cyclic .perm
+import data algebra.group .subgroup .finsubg theories.number_theory.pinat .cyclic .perm .action
 
 open nat finset fintype group_theory
 
 -- useful for debugging
--- set_option formatter.hide_full_terms false
+set_option formatter.hide_full_terms false
 
 definition pred_p [reducible] (p : nat) : nat → Prop := λ n, n = p
 
 section set_missing
+
+section finset_of_fintype
+
+lemma subset_inter {T : Type} [Hdeceq : decidable_eq T] {A B C : finset T} : A ⊆ B → A ⊆ C → A ⊆ B ∩ C := sorry
+
+end finset_of_fintype
 
 section minmax
 
@@ -17,6 +23,8 @@ include Hdeceq HfT
 
 definition minSet (P : finset T → Prop) (A : finset T) :=
   ∀ (B : finset T), subset B A → (P B ↔ B = A)
+
+definition decidable_minset [instance] (P : finset T → Prop) [HdecP : ∀ B, decidable (P B)] (A : finset T) : decidable (minSet P A) := sorry
 
 lemma minsetp (P : finset T → Prop) (A : finset T) (HminSet : minSet P A) : P A :=
   iff.elim_right (HminSet A (subset.refl A)) (!rfl)
@@ -169,6 +177,10 @@ lemma minSet_exists (P : finset T → Prop) [HdecP : forall A, decidable (P A)](
 definition maxSet (P : finset T → Prop) (A : finset T) :=
   minSet (λ B, P (compl B)) (compl A)
 
+definition decidable_maxset [instance] (P : finset T → Prop) [HdecP : ∀ B, decidable (P B)] (A : finset T) : decidable (maxSet P A) := decidable_minset _ _
+
+
+
 lemma maxset_eq (P1 P2 : finset T → Prop) (A : finset T) :
   (∀ B, P1 B ↔ P2 B) → (maxSet P1 A ↔ maxSet P2 A) :=
   begin
@@ -259,7 +271,7 @@ end
 
 end set_missing
 
--- section groupStructure
+section groupStructure
 
 -- -- this is not actually what we want, as G is not necessarily finite
 -- structure fingroup [class] (G : Type) extends group G :=
@@ -340,7 +352,7 @@ take G aG decG,
 -- definition all_subgroups (G : Fingroup) (H : G) :=
 -- { S : G | ∀ x, x ∈ S → x = x }
 
--- end groupStructure
+end groupStructure
 
 variables {G : Type} [ambientG : group G] [finG : fintype G] [deceqG : decidable_eq G]
 include ambientG deceqG finG
@@ -405,11 +417,29 @@ definition pgroup [reducible] (H : finset G) := is_pi_nat pi (card H)
 -- reveal pgroup
 -- print pgroup
 
+include Hdecpi
+lemma decidable_pigroup [instance] (H : finset G) : decidable (pgroup H) :=
+  begin
+   apply decidable_pi
+  end
+
+reveal decidable_pigroup
+
+omit Hdecpi
+
 -- the index of the subgroup A inside the group B
 definition index [reducible] (A B : finset G) -- (Psub : finset.subset A B)
 := finset.card (fin_lcosets A B)
 
-definition pi_subgroup (H1 H2 : finset G) := subset H1 H2 ∧ pgroup H1
+definition pi_subgroup [reducible] (H1 H2 : finset G) := subset H1 H2 ∧ pgroup H1
+
+include Hdecpi
+
+definition decidable_pi_subgroup [instance] (H1 H2 : finset G) : decidable (pi_subgroup H1 H2) := _
+
+reveal decidable_pi_subgroup
+
+omit Hdecpi
 
 definition pi_elt (pi : ℕ → Prop) (x : G) : Prop := is_pi_nat pi (order x)
 
@@ -437,6 +467,8 @@ definition is_sylow p (A B : finset G) := pgroup (pred_p p) A ∧ Hall A B ∧ i
 definition is_in_Syl [class] (p : nat) (A S : finset G) := S ∈ Syl p A
 
 end sylows
+
+-- lemma pi_subgroup_trans {H1 H2 H3 : finset G} : pi_subgroup H1 H2 → subset H2 H3 → pi_subgroup H1 H3 := _
 
 lemma pgroup_card (p : nat) (H : finset G) : pgroup (pred_p p) H → exists n, card H = p^n :=
   assume Hpgroup,
@@ -495,13 +527,13 @@ lemma syl_is_max_pgroup (p : nat) (A S : finset G) : is_in_Syl p A S ↔ maxSet 
   (sorry)
 
 
+
 example (p : nat) (A S : finset G) (H : is_in_Syl p A S)
 : is_finsubg S := _ -- @sylow_is_finsubg G _ _ _ p A S H  --(sylow_is_finsubg _)
 
 
 section action_by_conj
 
-definition ftfg [instance] : fintype (finset G) := sorry --shouldn't this be inferred by the typeclass mechanism?
 
 definition conj_subsets : G → group_theory.perm (finset G) :=
   λ (g : G), perm.mk (λ H, image (conj_by g) H)
@@ -585,3 +617,65 @@ and.intro
   absurd Hp (not_mem_empty p)
   )
 -- lemma sylow1 p (B : finset G): is_sylow p '{(1:G)} B  := _
+
+
+
+section sylowTheorem
+
+parameter {p : nat}
+variable A : finset G
+-- pose maxp A P := [max P | p.-subgroup(A) P];
+definition maxp [reducible] (P : finset G) : Prop := maxSet (λ B, pi_subgroup (pred_p p) B A) P
+
+definition decidable_maxp [instance] (P : finset G) : decidable (maxp A P) :=
+decidable_maxset (λ B, pi_subgroup (pred_p p) B A) P
+
+-- reveal decidable_maxp
+-- pose S := [set P | maxp G P].
+
+definition S := { P ∈ finset.powerset A | maxp A P}
+
+-- definition f : G → S → S := sorry
+
+abbreviation normalizer_in [reducible] (S T : finset G) : finset G := T ∩ normalizer S
+
+-- SmaxN P Q: Q \in S -> Q \subset 'N(P) -> maxp 'N_G(P) Q.
+-- reminder: 'N(P) = the normalizer of P, 'N_G(P) = the normalizer of P in G
+lemma SmaxN (P Q : finset G) : maxp A Q → Q ⊆ normalizer P → maxp (normalizer_in P A) Q :=
+  assume HmaxP HQnormP,
+  iff.elim_right (maxSet_iff _ _)
+  (take B HQB,
+  have H : _, from iff.elim_left (maxSet_iff _ _) HmaxP B HQB,
+  iff.intro
+  sorry
+  (sorry))
+
+-- !!!!!!!! strange : Lean refuses to acknowledge the existence of is_normal_in from group_theory
+-- Definition normal A B := (A \subset B) && (B \subset normaliser A).
+definition is_normal_in (B C : finset G) : Prop := B ⊆ C ∧ B ⊆ (normalizer A)
+
+lemma normSelf (A : finset G) : A ⊆ (normalizer A) := sorry
+
+-- have nrmG P: P \subset G -> P <| 'N_G(P).
+lemma nrmG (P : finset G) : P ⊆ A → is_normal_in A P (normalizer_in P A) :=
+  assume sPA,
+  and.intro
+  (subset_inter sPA (normSelf P))
+  (subset.trans sPA (normSelf A))
+
+-- (in pgroup.v) Lemma normal_max_pgroup_Hall G H :
+--   [max H | pi.-subgroup(G) H] -> H <| G -> pi.-Hall(G) H.
+-- let us do a more general version for starters
+lemma normal_max_pgroup_Hall (B C : finset G) : maxp C B → is_normal_in A B C → pHall (pred_p p) B C := sorry
+
+-- have sylS P: P \in S -> p.-Sylow('N_G(P)) P.
+lemma sylS (P : finset G) : maxp A P → is_sylow p P (normalizer_in P A) :=
+  assume HmaxP,
+  sorry
+
+definition conjG : G → perm G := action_by_conj
+
+-- have{SmaxN} defCS P: P \in S -> 'Fix_(S |'JG)(P) = [set P].
+lemma defCS (P : finset G) : maxp A P → fixed_points conjG (S A) = P := sorry
+
+end sylowTheorem
