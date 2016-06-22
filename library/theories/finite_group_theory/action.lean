@@ -392,12 +392,17 @@ end cayley
 
 section conjugation_action
 
-variables {G : Type} [group G] [fintype G]
+variables {G : Type} [Hgr : group G] [ Hft : fintype G]
+include Hgr Hft
+
+definition ftfg [instance] : fintype (finset G) := sorry --shouldn't this be inferred by the typeclass mechanism?
 
 definition action_by_conj : G → perm G :=
 take g, perm.mk (conj_by g) (conj_inj g)
 
-variable [decidable_eq G]
+variable [Hdec : decidable_eq G]
+
+include Hdec
 
 lemma action_by_conj_hom : homomorphic (@action_by_conj G _ _) := take g1 g2,
 -- calc
@@ -409,6 +414,20 @@ lemma action_by_conj_inj : injective (@action_by_conj G _ _) := sorry
 
 lemma action_by_conj_is_iso [instance] : is_iso_class (@action_by_conj G _ _) :=
 is_iso_class.mk action_by_conj_hom action_by_conj_inj
+
+lemma conj_by_im_inj (g : G) : injective (image (conj_by g)) :=
+  take e1 e2,
+  sorry
+
+definition action_by_conj_on_finsets : G → perm (finset G) :=
+take g, perm.mk (image (conj_by g)) (conj_by_im_inj g)
+
+lemma action_by_conj_on_finsets_inj : injective (@action_by_conj_on_finsets G _ _) := sorry
+
+-- to check : does this mean what is seems to mean (i.e, that it is a group action)
+lemma action_by_conj_on_finsets_hom :
+  homomorphic (@action_by_conj_on_finsets G Hgr Hft Hdec) :=
+  sorry
 
 end conjugation_action
 
