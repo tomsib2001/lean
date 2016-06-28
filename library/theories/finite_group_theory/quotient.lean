@@ -21,6 +21,9 @@ definition get_lcoset_type (g : G) (HgH : g ∈ normalizer H) : lcoset_type (nor
 variable (H)
 definition phiH (g : G) : lcoset_type (normalizer H) H := if HgH : g ∈ normalizer H then get_lcoset_type g HgH else fin_coset_one
 
+lemma phiHE (g : G) (HgH : g ∈ normalizer H) : phiH H g = get_lcoset_type g HgH :=
+  dif_pos HgH
+
 local attribute fin_lcoset [reducible]
 
 lemma fin_lcosetP g h (HhH : h ∈ H) : g * h ∈ fin_lcoset H g :=
@@ -132,8 +135,6 @@ lemma phiH_mul_compat (g1 g2 : G) (mg1H : g1 ∈ normalizer H) (mg2H : g2 ∈ no
     }
  end
 
-set_option unifier.max_steps 100000
-
 notation H1 ▸ H2 := eq.subst H1 H2
 
 lemma phiH1 : phiH H 1 = 1 :=
@@ -171,32 +172,74 @@ theorem hom_map_mul_closed (K : finset G) (HKN : K ⊆ normalizer H) : mul_close
         apply rfl
         end
 
+local attribute fin_coset_Union [reducible]
 
-
-
--- definition proj (K : (finset G)) : finset (lcoset_type (normalizer H) H) :=
--- all_lcosets (normalizer H) H
-
--- lemma lift1 (Kbar : finset (finset G)) [HfinsubK : is_finsubg Kbar] :
---   exists (K : finset G) , H ⊆ K ∧ is_finsubg_prop G K -- ∧ (set.map elt_of Kbar = fin_lcosets (normalizer H) K) -- can't even write this down
---   :=
---   have H1inKbar : fin_coset_one ∈ Kbar, from !finsubg_has_one,
---   exists.intro (fin_coset_Union Kbar)
---   (and.intro
---    (iff.elim_right (subset_iff_all _ _) (all_of_forall (take a memaH, iff.elim_right (mem_Union_iff _ _ _)
---   (exists.intro fin_coset_one (and.intro H1inKbar memaH)))))
---    (is_finsubg_prop_is_finsubg _))
-
-
-lemma lift2 (Kbar : finset (lcoset_type (normalizer H) H)) [HfinsubK : is_finsubg Kbar] :
-  exists (K : finset G) , H ⊆ K ∧ is_finsubg_prop G K ∧ (Kbar = fin_lcosets (normalizer H) K) -- can't even write this down
-  :=
-  have H1inKbar : fin_coset_one ∈ Kbar, from !finsubg_has_one,
-  exists.intro (fin_coset_Union Kbar)
-  (and.intro
-   (iff.elim_right (subset_iff_all _ _) (all_of_forall (take a memaH, iff.elim_right (mem_Union_iff _ _ _)
-  (exists.intro fin_coset_one (and.intro H1inKbar memaH)))))
-   (is_finsubg_prop_is_finsubg _))
-
+lemma lift_subgroup (Kbar : finset (lcoset_type (normalizer H) H)) [HfinsubK : is_finsubg Kbar] :
+  exists (K : finset G) , H ⊆ K ∧ is_finsubg_prop G K ∧ image (phiH H) K = Kbar :=
+      have H1inKbar : fin_coset_one ∈ Kbar, from !finsubg_has_one,
+      exists.intro (fin_coset_Union Kbar)
+      (and.intro
+      (iff.elim_right (subset_iff_all _ _) (all_of_forall (take a memaH, iff.elim_right (mem_Union_iff _ _ _)
+      (exists.intro fin_coset_one (and.intro H1inKbar memaH)))))
+      (and.intro (is_finsubg_prop_is_finsubg _)
+      begin
+       apply finset.subset.antisymm,
+       apply subset_of_forall,
+       intro sbar Hsbar_im,
+       rewrite (mem_image_eq (phiH H)) at Hsbar_im,
+       cases Hsbar_im with s Hs, cases Hs with Hsunion Heqphi,
+       rewrite mem_Union_eq at Hsunion,
+       cases Hsunion with xH HxH,
+       cases HxH with HxHKbar HsxH,
+       have Hsnorm : s ∈ normalizer H, from
+       begin
+         have Hlcoset : is_fin_lcoset (normalizer H) H (elt_of xH), from has_property xH,
+         rewrite ↑is_fin_lcoset at Hlcoset,
+         cases Hlcoset with g Hg,
+         apply mem_of_subset_of_mem !lcoset_subset_normalizer,
+         exact HsxH
+       end,
+       rewrite (phiHE H s Hsnorm) at Heqphi,
+       rewrite -Heqphi,
+       have Heq : get_lcoset_type s Hsnorm = xH, from
+       begin
+         apply subtype.eq,
+         rewrite ↑get_lcoset_type,
+         have Hlcoset : is_fin_lcoset (normalizer H) H (elt_of xH), from has_property xH,
+         rewrite ↑is_fin_lcoset at Hlcoset,
+         cases Hlcoset with g Hg,
+         rewrite -(and.right Hg) at *,
+         rewrite -fin_lcoset_same,
+         exact HsxH
+       end,
+       rewrite Heq,
+       exact HxHKbar,
+       apply subset_of_forall,
+       intro xH HxH,
+       have Hlcoset : is_fin_lcoset (normalizer H) H (elt_of xH), from has_property xH,
+       rewrite ↑is_fin_lcoset at Hlcoset,
+       cases Hlcoset with g Hg,
+       have Heq : xH = get_lcoset_type g (and.left Hg), from
+       begin
+        apply subtype.eq,
+        rewrite ↑lcoset_type,
+        rewrite -(and.right Hg),
+       end,
+      rewrite Heq,
+      have get_lcoset_type g (and.left Hg) = phiH H g, from
+        begin rewrite (phiHE H g (and.left Hg)) end,
+      rewrite this,
+      have g ∈ fin_coset_Union Kbar, from
+      begin
+        rewrite mem_Union_iff,
+        apply exists.intro xH,
+        apply and.intro,
+        exact HxH,
+        rewrite -(and.right Hg),
+        rewrite fin_lcoset_same
+      end,
+      apply mem_image this,
+      apply rfl
+      end))
 
 end group_theory
