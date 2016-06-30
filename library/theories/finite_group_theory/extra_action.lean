@@ -1,4 +1,4 @@
-import algebra.group data .hom .perm .finsubg .action data.finset.extra_finset
+import algebra.group data theories.finite_group_theory.hom theories.finite_group_theory.perm theories.finite_group_theory.finsubg theories.finite_group_theory.action data.finset.extra_finset
 
 -- namespace group_theory
 open finset function perm group_theory

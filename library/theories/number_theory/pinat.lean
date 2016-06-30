@@ -1,6 +1,12 @@
-import data.nat data.finset .primes .prime_factorization algebra.group_bigops
-open eq.ops finset -- well_founded
-decidable nat
+import theories.number_theory.prime_factorization algebra.group_bigops
+
+open finset decidable nat
+
+-- namespace nat
+
+-- section pinat
+
+-- definition tata := toto
 
 definition is_pi_nat [reducible] (pi : nat → Prop) n := (n > 0) ∧ ∀ (p : nat), p ∈  (prime_factors n) → pi p
 
@@ -9,9 +15,8 @@ definition is_pi'_nat [reducible] (pi : nat → Prop) n := is_pi_nat (λ x, ¬ (
 -- not sure if still useful
 definition is_pi_nat_ext [reducible] pi n := (n > 0) ∧ ∀ (p : nat), p ≤ n →  p ∈  (prime_factors n) → pi p
 
-
-eval (3 ∈ (prime_factors 3)) -- works!!
-eval (is_pi_nat_ext (λ p, p = 3) 9) -- works also
+-- eval (3 ∈ (prime_factors 3)) -- works!!
+-- eval (is_pi_nat_ext (λ p, p = 3) 9) -- works also
 
 lemma is_pi_nat_ext_iff_is_pi_nat pi (n : nat) : is_pi_nat_ext pi n ↔ is_pi_nat pi n :=
 iff.intro
@@ -36,7 +41,7 @@ iff.intro
   end
 
 -- probably useless since the unification algorithm already knows decidable_mem?
-definition decidable_prime_factor [instance] (n p : nat) : decidable (p ∈ prime_factors n) := decidable_mem p (prime_factors n)
+-- definition decidable_prime_factor [instance] (n p : nat) : decidable (p ∈ prime_factors n) := decidable_mem p (prime_factors n)
 
 set_option formatter.hide_full_terms false
 
@@ -85,7 +90,7 @@ variable [Hdecpi : ∀ p, decidable (pi p)]
 
 include Hdecpi
 
-check (is_true (is_pi_nat_ext pi 5))
+-- check (is_true (is_pi_nat_ext pi 5))
 
 definition decidable_pi [instance] (n : nat) : decidable (is_pi_nat pi n) :=
   decidable_of_decidable_of_iff _ (is_pi_nat_ext_iff_is_pi_nat pi n)
@@ -130,6 +135,10 @@ assume Hdvd Hpin,
    ),
    (and.right Hpin p H2)
  )
+
+lemma pinat_prime {pi} {p : ℕ} (Hprime : prime p) : pi p → is_pi_nat pi p :=
+  assume Hpip,
+  sorry
 
 lemma pinat_mul {pi} {m n : ℕ} : is_pi_nat pi (m * n) ↔ is_pi_nat pi m ∧ is_pi_nat pi n :=
   iff.intro
@@ -262,3 +271,7 @@ apply Prod_empty
 end
 
 end partn_properties
+
+-- end pinat
+
+-- end nat

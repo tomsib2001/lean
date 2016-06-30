@@ -1,5 +1,7 @@
-import data algebra.group .subgroup .finsubg data.finset.extra_finset
+import data algebra.group theories.finite_group_theory.subgroup theories.finite_group_theory.finsubg data.finset.extra_finset
 open function finset group_theory subtype nat set
+
+open group_theory nat
 
 namespace group_theory
 
@@ -66,8 +68,106 @@ end groupStructure
 
 
 -- some theory to categorize more precisely later
+
+
+
+
 variables {G : Type} [ambientG : group G] [finG : fintype G] [deceqG : decidable_eq G]
 include ambientG deceqG finG
+
+section extra_lcoset_type
+
+variable H : finset G
+variable {H}
+
+variable [finsubgH : is_finsubg H]
+include finsubgH
+
+-- variable (H)
+
+variable L : finset G
+variable [HsKNH : L ⊆ normalizer H]
+variable [sgL : is_finsubg L]
+include sgL
+include HsKNH
+open eq.ops
+
+variable {L}
+
+lemma lcoset_subset_normalizer_of_mem_gen {g : G} :
+  g ∈ L → fin_lcoset H g ⊆ normalizer H :=
+assume Pgin,
+have HgH: g ∈ normalizer H, from mem_of_subset_of_mem HsKNH Pgin,
+fin_lcoset_subset subset_normalizer g HgH
+
+-- set_option unifier.max_steps 1000000
+
+-- lemma lrcoset_same_of_mem_normalizer_gen {g : G} :
+--   g ∈ L → fin_lcoset H g = fin_rcoset H g :=
+-- assume Pg,
+-- have HgH: g ∈ normalizer H, from mem_of_subset_of_mem HsKNH Pg,
+-- ext take h, iff.intro
+--   (assume Pl, obtain j Pjin Pj, from exists_of_mem_image Pl,
+--   mem_image (of_mem_sep HgH j Pjin)
+--   (calc g*j*g⁻¹*g = g*j : inv_mul_cancel_right
+--                 ... = h   : Pj))
+--   (assume Pr, obtain j Pjin Pj, from exists_of_mem_image Pr,
+--   mem_image (of_mem_sep (finsubg_has_inv (normalizer H) HgH) j Pjin)
+--   (calc g*(g⁻¹*j*g⁻¹⁻¹) = g*(g⁻¹*j*g)   : inv_inv
+--                    ... = g*(g⁻¹*(j*g)) : mul.assoc
+--                    ... = j*g           : mul_inv_cancel_left
+--                    ... = h             : Pj))
+
+
+lemma lcoset_mul_eq_lcoset_gen (J K : lcoset_type L H) {g : G} :
+  g ∈ elt_of J → (lcoset_mul J K) = fin_lcoset (elt_of K) g :=
+assume Pgin,
+obtain j Pjin Pj, from has_property J,
+have HjNH : j ∈ normalizer H, from mem_of_subset_of_mem HsKNH Pjin,
+obtain k Pkin Pk, from has_property K,
+have HkNH : k ∈ normalizer H, from mem_of_subset_of_mem HsKNH Pkin,
+Union_const (lcoset_not_empty J) begin
+  rewrite [-Pk], intro h Phin,
+  have Phinn : h ∈ normalizer H,
+    begin
+      apply mem_of_subset_of_mem (lcoset_subset_normalizer_of_mem_gen HjNH),
+      rewrite Pj, assumption
+    end,
+  revert Phin Pgin,
+  rewrite [-Pj, *fin_lcoset_same],
+  intro Pheq Pgeq,
+  rewrite [*(lrcoset_same_of_mem_normalizer HkNH), *fin_lrcoset_comm, Pheq, Pgeq]
+end
+
+check lcoset_mul_eq_lcoset_gen
+check lcoset_mul_eq_lcoset
+check lcoset_mul
+
+-- set_option pp.implicit true
+
+-- lemma lcoset_mul_is_lcoset_gen (J K : lcoset_type L H) :
+--   is_fin_lcoset L H (lcoset_mul J K) :=
+-- obtain j (Pjin : j ∈ L) Pj, from has_property J,
+-- -- have HjNH : j ∈ normalizer H, from mem_of_subset_of_mem HsKNH Pjin,
+-- obtain k (Pkin : k ∈ L) Pk, from has_property K,
+-- -- have HkNH : k ∈ normalizer H, from mem_of_subset_of_mem HsKNH Pkin,
+-- exists.intro (j*k) (and.intro (finsubg_mul_closed L Pjin Pkin)
+-- begin rewrite [lcoset_mul_eq_lcoset_gen J K (Pj ▸ fin_mem_lcoset j), -fin_lcoset_compose, Pk] end
+--   )
+
+
+-- definition fin_coset_mul_gen (J K : lcoset_type L H) : lcoset_type L H :=
+-- tag (lcoset_mul J K) (lcoset_mul_is_lcoset J K)
+
+definition fin_coset_group_gen [instance] : group (lcoset_type L H) := sorry
+-- group.mk fin_coset_mul fin_coset_mul_assoc fin_coset_one fin_coset_one_mul fin_coset_mul_one fin_coset_inv fin_coset_left_inv
+
+
+-- definition fin_coset_subgroup [instance] : group (lcoset_type K H) :=
+-- group.mk fin_coset_mul fin_coset_mul_assoc fin_coset_one fin_coset_one_mul fin_coset_mul_one fin_coset_inv fin_coset_left_inv
+
+end extra_lcoset_type
+
 
 lemma subset_one_group (A : finset G) (hA : is_finsubg A) : subset '{(1:G)} A :=
 begin
@@ -105,8 +205,21 @@ lemma lagrange_div {H1 H2 : finset G} [H1gr : is_finsubg H1] [ H2gr : is_finsubg
   dvd_of_eq_mul _ _ _ (eq.subst !nat.mul_comm (lagrange_theorem HS))
 
 -- the index of the subgroup A inside the group B
+-- is it better to have index A B or index B A?
+-- here index A B = [B : A] (and thus A is a subset of B)
 definition index [reducible] (A B : finset G) -- (Psub : finset.subset A B)
 := finset.card (fin_lcosets A B)
+
+lemma index_card_fin_coset_type (A B : finset G) [is_finsubg B] : index A B = fintype.card (lcoset_type B A) :=
+  begin
+  rewrite card_lcoset_type
+  end
+
+lemma index_card_div (A B : finset G) [HA : is_finsubg A] [HB : is_finsubg B] (Psub : A ⊆ B) :
+  card B = (index A B) * (card A) :=
+calc
+  card B = card (fin_lcosets A B) * card A : lagrange_theorem Psub
+  ...    = (index A B) * (card A) : rfl
 
 -- it would be nice if this were cheap...
 lemma index_one (B : finset G)  : index '{(1:G)} B = finset.card B :=
@@ -122,9 +235,9 @@ lemma index_one (B : finset G)  : index '{(1:G)} B = finset.card B :=
 -- some theory of generated subgroup
 
 -- we cannot define this properly because Intersection is not in the library yet
-definition generated (A : finset G) := sInter { S : finset.powerset G | is_finsubg_prop S} 
-finset.set_
--- lemma is_min_generated (A H : finset G) [HgrH : is_finsubg H] : 
+-- definition generated (A : finset G) := sInter { S : finset.powerset G | is_finsubg_prop S}
+-- finset.set_
+-- lemma is_min_generated (A H : finset G) [HgrH : is_finsubg H] :
 --   minSet (is_finsubg_prop G) H := sorry
 
 end group_theory

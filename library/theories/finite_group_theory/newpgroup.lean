@@ -1,7 +1,12 @@
-import data algebra.group .subgroup .finsubg theories.number_theory.pinat .cyclic .perm .action 
-import .extra_action .quotient .extra_finsubg data.finset.extra_finset
-
+import algebra.group theories.finite_group_theory.subgroup theories.finite_group_theory.finsubg
+theories.finite_group_theory.cyclic theories.finite_group_theory.perm
+theories.finite_group_theory.action
+import theories.finite_group_theory.extra_action theories.finite_group_theory.quotient theories.finite_group_theory.extra_finsubg data.finset.extra_finset
+import theories.number_theory.pinat
+import theories.finite_group_theory.pgroup
 open nat finset fintype group_theory subtype
+
+namespace group_theory
 
 -- useful for debugging
 set_option formatter.hide_full_terms false
@@ -10,6 +15,14 @@ definition pred_p [reducible] (p : nat) : nat → Prop := λ n, n = p
 
 variables {G : Type} [ambientG : group G] [finG : fintype G] [deceqG : decidable_eq G]
 include ambientG deceqG finG
+
+section pgroup_missing
+
+-- the Cauchy theorem from pgroup only mentions the ambient group..
+lemma actual_Cauchy_theorem (H : finset G) [HsgH : is_finsubg H] {p : nat} :
+  prime p → p ∣ card H → ∃ h : G, h ∈ H ∧ order h = p := sorry
+
+end pgroup_missing
 
 section PgroupDefs
 
@@ -42,6 +55,14 @@ definition decidable_pigroup [instance] (H : finset G) : decidable (pgroup H) :=
 definition decidable_pi_subgroup [instance] (H1 H2 : finset G) : decidable (pi_subgroup H1 H2) := _
 
 -- end decidability on prgroup theory
+
+-- some useful lemmas
+
+lemma pi_subgroup_subset {H1 H2 : finset G} (Hpisubg : pi_subgroup H1 H2) : subset H1 H2 :=
+  and.left Hpisubg
+
+lemma pi_subgroup_pgroup {H1 H2 : finset G} (Hpisubg : pi_subgroup H1 H2) : pgroup H1 :=
+  and.right Hpisubg
 
 end PgroupDefs
 
@@ -189,3 +210,5 @@ section SylowTheorem
 
 
 end SylowTheorem
+
+end group_theory

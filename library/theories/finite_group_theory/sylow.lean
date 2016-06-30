@@ -1,7 +1,7 @@
 import theories.number_theory.pinat
-import data algebra.group .subgroup .finsubg theories.number_theory.pinat .cyclic .perm .action 
-import .extra_action .quotient .extra_finsubg data.finset.extra_finset
-import .newpgroup
+import data algebra.group theories.finite_group_theory.subgroup theories.finite_group_theory.finsubg theories.number_theory.pinat theories.finite_group_theory.cyclic theories.finite_group_theory.perm theories.finite_group_theory.action
+import theories.finite_group_theory.extra_action theories.finite_group_theory.quotient theories.finite_group_theory.extra_finsubg data.finset.extra_finset
+import theories.finite_group_theory.newpgroup
 
 open nat finset fintype group_theory subtype
 
@@ -81,9 +81,14 @@ lemma SmaxN (P Q : finset G) : maxp A Q → Q ⊆ normalizer P → maxp (normali
   end))
 
 
--- !!!!!!!! strange : Lean refuses to acknowledge the existence of is_normal_in from group_theory
+
 -- Definition normal A B := (A \subset B) && (B \subset normaliser A).
--- definition is_normal_in (B C : finset G) : Prop := B ⊆ C ∧ C ⊆ (normalizer B)
+definition is_normal_in [reducible] (B C : finset G) : Prop := C ⊆ (normalizer B)
+
+definition normal_subgroup [reducible] (B C : finset G) [HB : is_finsubg B] [HC : is_finsubg C] :=
+  B ⊆ C ∧ C ⊆ (normalizer B)
+
+attribute normal_subgroup [class]
 
 -- lemma normSelf (A : finset G) : A ⊆ (normalizer A) :=
 --   subset_normalizer
@@ -91,28 +96,95 @@ lemma SmaxN (P Q : finset G) : maxp A Q → Q ⊆ normalizer P → maxp (normali
 include HAfG
 
 -- have nrmG P: P \subset G -> P <| 'N_G(P).
-lemma nrmG (P : finset G) [HfGP : is_finsubg P] : P ⊆ A → is_normal_in A P (normalizer_in P A) :=
-  assume sPA,
-  and.intro
-  (subset_inter sPA (subset_normalizer))
-  (subset.trans sPA (subset_normalizer))
+lemma nrmG (P : finset G) [HfGP : is_finsubg P] (sPA : P ⊆ A) : is_normal_in P (normalizer_in P A) :=
+  begin
+   rewrite ↑is_normal_in,
+   exact finset_inter_subset_right
+  end
 
 omit HAfG
+
+check pi_subgroup_subset
+
+
+open nat
+
+-- definition subgroup_lcoset_type [instance] (B C : finset G) [HB : is_finsubg B] [HC : is_finsubg C] [HnsBC : normal_subgroup B C] : is_finsubg (fin_lcosets C B) := sorry
 
 -- (in pgroup.v) Lemma normal_max_pgroup_Hall G H :
 --   [max H | pi.-subgroup(G) H] -> H <| G -> pi.-Hall(G) H.
 -- let us do a less general version for starters
-lemma normal_max_pgroup_Hall (B C : finset G) [HC : is_finsubg C] :
-  maxp C B → is_normal_in A B C → pHall (pred_p p) B C :=
+lemma normal_max_pgroup_Hall (B C : finset G) [HB : is_finsubg B] [HC : is_finsubg C] :
+  maxp C B → normal_subgroup B C → pHall (pred_p p) B C :=
   assume HmaxB Hnormal,
-  have toto : is_finsubg B, from _,
   have HB : (pi_subgroup (pred_p p) B C) ∧ is_finsubg_prop G B, from maxsetp HmaxB,
-  and.intro (and.left Hnormal)
+  have HsBC : B ⊆ C, from pi_subgroup_subset _ (and.left HB),
+  and.intro (HsBC)
   (and.intro (and.right (and.left HB))
   (have toto : _, from and.right (and.left HB),
-  have Hindex : index C B = (card _) , from _,
-   _ -- here we need an argument explaining that if p divides [C : B],
-    -- p = 1
+  have Hindex : index B C = card (fin_lcosets B C), from by rewrite ↑index,
+  have Hdiv : _, from index_card_div _ _ HsBC,
+  have HCpos : card C > 0, from card_pos_of_mem (finsubg_has_one C),
+  have HBpos : card B > 0, from card_pos_of_mem (finsubg_has_one B),
+  have Hpos : card (fin_lcosets B C) > 0, from
+    begin
+    apply (pos_of_mul_pos_right (eq.subst Hindex _)),
+  end,
+  begin
+   rewrite [Hindex,↑is_pi'_nat,↑is_pi_nat],
+   apply and.intro,
+   exact Hpos,
+   rewrite -Hindex,
+   intro p1 Hp1primeCB,
+   have Hprimep1 : prime p1, from (prime_of_mem_prime_factors Hp1primeCB),
+   have Hp1div : p1 ∣ card (fin_lcosets B C), from eq.subst Hindex (dvd_of_mem_prime_factors Hp1primeCB),
+   have Hcard :  card (phiH B ' C) = index B C, from
+   begin rewrite (card_im_phi_lcosets B C (and.right Hnormal)) end,
+   rewrite -image_psiH at Hp1div,
+   rewrite -(card_im_phi_lcosets B C (and.right Hnormal)) at Hp1div,
+   intro Habs, -- now we want to show that we can build a bigger group than B
+   have Hfinsubg_imPhi:  is_finsubg (phiH B ' C), from phiH_preserves_groups B C (and.right Hnormal),
+   have Hp1divglob : p1 ∣ card (lcoset_type (normalizer B) B), from dvd.trans Hp1div (lagrange_div (subset_univ _)),
+   have Cauchy : ∃ (g1 : lcoset_type (normalizer B) B), g1 ∈ (phiH B ' C) ∧ order g1 = p1 , from actual_Cauchy_theorem _ (prime_of_mem_prime_factors Hp1primeCB) Hp1div,
+   cases Cauchy with g1 Hg1,
+   cases (lift_subgroup _ (cyc g1)) with U HU,
+   cases HU with DefU Hand,
+   cases Hand with sBU Hand,
+   cases Hand with sgU phi_cyc,
+   have HsgU : is_finsubg U, from is_finsubg_is_finsubg_prop sgU,
+   have HcardBU : card U = index B U * card B, from index_card_div B U sBU,
+   revert HcardBU,
+   rewrite index_card_fin_coset_type,
+   rewrite card_lcoset_type,
+   have HnormalU : U ⊆ normalizer B, from sorry, -- this should be added to lift_subgroup, in fact U ⊆ C
+   rewrite -(image_psiH B U),
+   rewrite -(card_im_phi_lcosets B U HnormalU),
+   rewrite phi_cyc,
+   have card (cyc g1) = p1, from (and.right Hg1),
+   rewrite this, intro HcardU,
+   have pgrpU : pgroup (pred_p p) U, from
+     begin
+       rewrite [↑pgroup,HcardU],
+       rewrite pinat_mul, apply and.intro,
+       apply (pinat_prime Hprimep1),
+       exact Habs,
+       exact toto
+     end,
+   -- cases (exists_of_mem_image (and.left Hg1)) with x1 Hx1g1,
+   -- cases Hx1g1 with x1 Hx1g1,
+   have Habs : pi_subgroup (pred_p p) U C ∧ is_finsubg_prop G U, from
+     begin
+      apply and.intro,
+      rewrite ↑pi_subgroup,
+      apply (and.intro sorry pgrpU),
+      exact sgU
+     end,
+   have HeqBU : U = B, from (maxsetsup _ _ _ HmaxB Habs sBU),
+   have H1 : p1 * card B = card B, from eq.symm (eq.subst HeqBU HcardU),
+   have Hp1one : p1 = 1, from (eq_one_of_mul_eq_self_left HBpos H1),
+   apply not_prime_one,
+   exact(eq.subst Hp1one Hprimep1)
+  end
   )
   )
 
