@@ -154,6 +154,9 @@ theorem hom_on_map_subgroup (sHF : H ⊆ F) : is_subgroup (f ' H) :=
     and.right Pa ▸ Pfainv,
   is_subgroup.mk Pone Pclosed Pinv
 
+lemma antecedents_ker (x y : A) : f x = f y → ∃ h, h ∈ ker_on F f ∧ x = h * y := sorry
+
+print inv_image
 
 -- variable [deceqA : decidable_eq A]
 -- variable {Hf : finset A}
