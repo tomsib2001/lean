@@ -3,6 +3,7 @@
 import data theories.finite_group_theory.subgroup theories.finite_group_theory.finsubg theories.finite_group_theory.extra_finsubg --algebra.group
 -- import theories.group_theory.basic
 
+import theories.finite_group_theory.extra_hom
 open group_theory finset subtype
 
 namespace group_theory
@@ -215,67 +216,110 @@ lemma phiH_mul_compat (g1 g2 : G) (mg1H : g1 ∈ normalizer H) (mg2H : g2 ∈ no
     }
  end
 
+-- we can now establish that phiH is a morphism
+lemma hom_on_phiH : homomorphic_on (normalizer H) (phiH H) :=
+  take a b Ha Hb, (phiH_mul_compat H a b Ha Hb)
+
+lemma is_hom_on_class_phiH [instance] : is_hom_on_class (normalizer H) (phiH H) :=
+  is_hom_on_class.mk (hom_on_phiH H)
+
+
 notation H1 ▸ H2 := eq.subst H1 H2
 
-lemma phiH1 : phiH H 1 = 1 :=
-  have P : phiH H 1 = phiH H 1 * phiH H 1, from
-  calc
-  phiH H 1 = phiH H (1 * 1) : mul_one
-  ...      = (phiH H 1) * (phiH H 1) : (phiH_mul_compat H 1 1 normalizer_has_one normalizer_has_one),
-  eq.symm (eq.subst (mul.right_inv (phiH H 1)) (mul_inv_eq_of_eq_mul P))
+lemma phiH1 : phiH H 1 = 1 := (hom_on_map_one (normalizer H) _)
+  -- have P : phiH H 1 = phiH H 1 * phiH H 1, from
+  -- calc
+  -- phiH H 1 = phiH H (1 * 1) : mul_one
+  -- ...      = (phiH H 1) * (phiH H 1) : (phiH_mul_compat H 1 1 normalizer_has_one normalizer_has_one),
+  -- eq.symm (eq.subst (mul.right_inv (phiH H 1)) (mul_inv_eq_of_eq_mul P))
 
 lemma phiH_inv (a : G) (Hanorm : a ∈ normalizer H): phiH H (a⁻¹) = (phiH H a)⁻¹ :=
-        have P : phiH H 1 = 1, from phiH1 H,
-        have P1 : phiH H (a⁻¹ * a) = 1, from (eq.symm (mul.left_inv a)) ▸ P,
-        have P2 : (phiH H a⁻¹) * (phiH H a) = 1, from (phiH_mul_compat H a⁻¹ a (normalizer_has_inv _ Hanorm) Hanorm) ▸ P1,
-        have P3 : (phiH H a⁻¹) * (phiH H a) = (phiH H a)⁻¹ * (phiH H a), from eq.symm (mul.left_inv (phiH H a)) ▸ P2,
-        mul_right_cancel P3
+(hom_on_map_inv (normalizer H) _ a Hanorm)
+        -- have P : phiH H 1 = 1, from phiH1 H,
+        -- have P1 : phiH H (a⁻¹ * a) = 1, from (eq.symm (mul.left_inv a)) ▸ P,
+        -- have P2 : (phiH H a⁻¹) * (phiH H a) = 1, from (phiH_mul_compat H a⁻¹ a (normalizer_has_inv _ Hanorm) Hanorm) ▸ P1,
+        -- have P3 : (phiH H a⁻¹) * (phiH H a) = (phiH H a)⁻¹ * (phiH H a), from eq.symm (mul.left_inv (phiH H a)) ▸ P2,
+        -- mul_right_cancel P3
 
-theorem phiH_map_mul_closed (K : finset G) (HKN : K ⊆ normalizer H) : mul_closed_on K → mul_closed_on (phiH H ' K) :=
-        assume (Pclosed : mul_closed_on K),
-        assume (b1 : lcoset_type (normalizer H) H),
-        assume (b2 : lcoset_type (normalizer H) H),
-        assume Pb1 : b1 ∈ phiH H ' K, assume Pb2 : b2 ∈ phiH H ' K,
-        begin
-        rewrite (mem_image_eq (phiH H)) at Pb1,
-        rewrite (mem_image_eq (phiH H)) at Pb2,
-        cases Pb1 with x1 Hx1, cases Pb2 with x2 Hx2,
-        cases Hx1 with Hx1K Hx1b1, cases Hx2 with Hx2K Hx2b2,
-        rewrite [-Hx1b1,-Hx2b2],
-        have Hx1N : x1 ∈ normalizer H, from mem_of_subset_of_mem HKN Hx1K,
-        have Hx2N : x2 ∈ normalizer H, from mem_of_subset_of_mem HKN Hx2K,
-        rewrite -(phiH_mul_compat H x1 x2 Hx1N Hx2N),
-        apply mem_image,
-        apply (Pclosed x1 x2),
-        exact Hx1K,
-        exact Hx2K,
-        apply rfl
-        end
+set_option pp.implicit false
 
-theorem phiH_finset_mul_closed_on (K : finset G) (HKN : K ⊆ normalizer H) : finset_mul_closed_on K → finset_mul_closed_on (phiH H ' K) :=
-        assume (Pclosed : finset_mul_closed_on K),
-        assume x y Hx Hy,
-        begin
-        apply (phiH_map_mul_closed H K HKN),
-        apply Pclosed,
-        exact Hx,
-        exact Hy
-        end
+theorem phiH_map_mul_closed (K : finset G) (HKN : K ⊆ normalizer H) (Pclosed : mul_closed_on K) : mul_closed_on (set.image (phiH H) K) :=
+begin
+apply (hom_on_map_mul_closed (normalizer H) (phiH H) K),
+rewrite -subset_eq_to_set_subset, exact HKN,
+exact Pclosed
+end
+        -- assume (b1 : lcoset_type (normalizer H) H),
+        -- assume (b2 : lcoset_type (normalizer H) H),
+        -- assume Pb1 : b1 ∈ phiH H ' K, assume Pb2 : b2 ∈ phiH H ' K,
+        -- begin
+        -- rewrite (mem_image_eq (phiH H)) at Pb1,
+        -- rewrite (mem_image_eq (phiH H)) at Pb2,
+        -- cases Pb1 with x1 Hx1, cases Pb2 with x2 Hx2,
+        -- cases Hx1 with Hx1K Hx1b1, cases Hx2 with Hx2K Hx2b2,
+        -- rewrite [-Hx1b1,-Hx2b2],
+        -- have Hx1N : x1 ∈ normalizer H, from mem_of_subset_of_mem HKN Hx1K,
+        -- have Hx2N : x2 ∈ normalizer H, from mem_of_subset_of_mem HKN Hx2K,
+        -- rewrite -(phiH_mul_compat H x1 x2 Hx1N Hx2N),
+        -- apply mem_image,
+        -- apply (Pclosed x1 x2),
+        -- exact Hx1K,
+        -- exact Hx2K,
+        -- apply rfl
+        -- end
+
+
+
+theorem phiH_finset_mul_closed_on (K : finset G) (HKN : K ⊆ normalizer H) (Pclosed : finset_mul_closed_on K) : finset_mul_closed_on (finset.image (phiH H) K) :=
+  begin
+  intro x y Hx Hy,
+  rewrite mem_eq_mem_to_set,
+  rewrite (to_set_image (phiH H) K),
+  apply (hom_on_map_mul_closed (normalizer H) (phiH H) K),
+  rewrite -subset_eq_to_set_subset,
+  apply HKN,
+  intro x1 y1 Hx1 Hy1,
+  apply Pclosed,
+  exact Hx1, exact Hy1,
+  rewrite -(to_set_image (phiH H) K),
+  exact Hx,
+  rewrite -(to_set_image (phiH H) K),
+  exact Hy,
+  -- this proof was harder than expected! It is longer than a "by-hand" proof
+  end
+        -- assume x y Hx Hy,
+        -- begin
+        -- apply (phiH_map_mul_closed H K HKN),
+        -- apply Pclosed,
+        -- exact Hx,
+        -- exact Hy
+        -- end
+
+set_option pp.coercions true
 
 theorem phiH_preserves_groups [instance] (K : finset G) (HKN : K ⊆ normalizer H) [HsgK : is_finsubg K] : is_finsubg (phiH H ' K) :=
-is_finsubg.mk (mem_image (finsubg_has_one K) (phiH1 _)) (phiH_finset_mul_closed_on H K HKN (take x y, (finsubg_mul_closed K)))
-(take y Hy,
-  begin
-    rewrite mem_image_iff at Hy,
-    cases Hy with x Hxy,
-    cases Hxy with HxK Hxy,
-    rewrite -Hxy,
-    have HxN : x ∈ normalizer H, from mem_of_subset_of_mem HKN HxK,
-    rewrite -(phiH_inv H x HxN),
-    have HxinvK : x⁻¹∈ K, from finsubg_has_inv _ HxK,
-    apply (mem_image HxinvK),
-    apply rfl
-  end)
+  have subgphiK : is_subgroup (phiH H ' K), from begin rewrite (to_set_image (phiH H) K), apply (hom_on_map_subgroup (normalizer H) (phiH H)),
+  rewrite -subset_eq_to_set_subset, exact HKN end,
+  is_finsubg_subg
+  -- begin rewrite (to_set_image (phiH H) K),
+--       -- apply (hom_on_map_subgroup (normalizer H) (phiH H) HKN),
+-- end
+-- -- hom_on_map_subgroup (normalizer H) (phiH H) HKN
+-- is_finsubg.mk (mem_image (finsubg_has_one K) (phiH1 _)) (phiH_finset_mul_closed_on H K HKN (take x y, (finsubg_mul_closed K)))
+-- (take y Hy,
+--   begin
+--     rewrite mem_image_iff at Hy,
+--     cases Hy with x Hxy,
+--     cases Hxy with HxK Hxy,
+--     rewrite -Hxy,
+--     have HxN : x ∈ normalizer H, from mem_of_subset_of_mem HKN HxK,
+--     rewrite -(phiH_inv H x HxN),
+--     have HxinvK : x⁻¹∈ K, from finsubg_has_inv _ HxK,
+--     apply (mem_image HxinvK),
+--     apply rfl
+--   end)
+
+
 
 local attribute fin_coset_Union [reducible]
 

@@ -80,6 +80,14 @@ section extra_lcoset_type
 variable H : finset G
 variable {H}
 
+-- we can't make this an instance otherwise we would have a loop, because the opposite can also be deduced
+definition is_finsubg_subg [subgH : is_subgroup (ts H)] : is_finsubg H :=
+  have has1H : 1 ∈ H, from (@subg_has_one G _ H subgH),
+  have fmcH : finset_mul_closed_on H, from take x y Hx Hy,
+  begin apply (@subg_mul_closed G _ H _ x y Hx Hy) end,
+  have invH : finset_has_inv H, from @subg_has_inv G _ H _,
+  is_finsubg.mk has1H fmcH invH
+
 variable [finsubgH : is_finsubg H]
 include finsubgH
 
