@@ -1,8 +1,9 @@
-import data.fintype.basic data.nat data.list.perm data.finset algebra.binary
+import data.fintype.basic data.nat data.list.perm data.finset algebra.binary algebra.ordered_ring
 open nat quot list subtype binary function eq.ops finset
 
 
 section set_operations
+
 lemma subset_inter {T : Type} [Hdeceq : decidable_eq T] {A B C : finset T}
 (sAB :A ⊆ B) (sAC : A ⊆ C) : A ⊆ B ∩ C :=
   begin
@@ -31,6 +32,16 @@ lemma finset_inter_subset_right {T : Type} [Hdeceq : decidable_eq T] {A B  : fin
     apply (finset.mem_of_mem_inter_right HxAintB),
   end
 
+lemma subset_compl {T : Type} [HfT : fintype T] [Hdeceq : decidable_eq T] {A B : finset T} (sAB : A ⊆ B) : finset.compl B ⊆ finset.compl A :=
+  subset_of_forall (take x HxB,
+  begin
+   apply mem_compl,
+   have HnB: x ∉ B, from (not_mem_of_mem_compl HxB),
+   intro HxA,
+   apply HnB,
+   apply mem_of_subset_of_mem sAB HxA,
+  end)
+
 lemma missing_compl_compl {T : Type} [HfT : fintype T] [Hdeceq : decidable_eq T] (A : finset T) : finset.compl (finset.compl A) = A :=
   begin
     apply eq_of_subset_of_subset,
@@ -45,6 +56,17 @@ lemma missing_compl_compl {T : Type} [HfT : fintype T] [Hdeceq : decidable_eq T]
   rewrite (not_iff_not_of_iff (mem_compl_iff A x)),
   apply not_not_intro,
   exact HxA
+  end
+
+lemma eq_is_eq_compl {T : Type} [HfT : fintype T] [Hdeceq : decidable_eq T] {A B : finset T} : (A = B) ↔ (- A = - B) :=
+  begin
+    apply iff.intro,
+    intro HAB,
+    rewrite HAB,
+    intro HcAcB,
+    rewrite -missing_compl_compl,
+    rewrite HcAcB,
+    apply missing_compl_compl
   end
 
 -- less sure that the next two are really necessary
@@ -71,7 +93,7 @@ end set_operations
 section finset_of_fintype
 
 
-definition fintype_of_finset [instance] {T : Type} [HfT : fintype T] : fintype (finset T) := sorry
+definition fintype_of_finset [instance] {T : Type} [HfT : fintype T] : fintype (finset T) := fintype.mk sorry sorry sorry
 
 end finset_of_fintype
 
@@ -109,15 +131,92 @@ lemma helper_lemma (P : finset T → Prop) : (exists U, subset U ∅ ∧ P U) �
   have HPU : P U, from (and.right HU),
   exists.intro U (and.intro (eq.substr Hempty (minSet_empty P (eq.subst Hempty HPU))) (and.left HU))
 
+definition smallest (P : nat → Prop) (HdecP : forall (n : nat), decidable (P n))
+(n : nat) : P n →  exists (m : nat), m ≤ n ∧ P m ∧ ∀ k, P k → m ≤ k :=
+  have Hgeneral : ∀ i, i ≤ n → P i → exists (m : nat), m ≤ i ∧ P m ∧ ∀ k, P k → m ≤ k, from nat.rec_on n
+  begin
+  intro i li0 HPi,
+  apply (exists.intro 0),
+  rewrite (eq_zero_of_le_zero li0) at *,
+  apply and.intro,
+  apply nat.le_refl,
+  apply (and.intro HPi),
+  intro k Hk,
+  apply zero_le
+  end
+  begin
+  intro a HR,
+  have Hcases : (exists j, j ≤ a ∧ P j) ∨ ¬ (exists j, j ≤ a ∧ P j), from (decidable.em (exists j, j ≤ a ∧ P j)),
+  cases Hcases with yes no,
+  cases yes with j Hj,
+  cases Hj with lja Pj,
+  intro i Hi HPi,
+  cases (le_or_eq_succ_of_le_succ Hi) with lia iSa,
+  apply (HR i lia HPi),
+  cases (le_or_gt i j) with lij ltji,
+  apply (HR i (nat.le_trans lij lja) HPi),
+  cases (HR j lja Pj) with m Hm,
+  apply (exists.intro m),
+  apply and.intro,
+  apply (nat.le_of_lt (lt_of_le_of_lt (and.left Hm) ltji)),
+  exact (and.right Hm),
+  intro i liSa HPi,
+  cases (le_or_eq_succ_of_le_succ liSa) with lia iSa,
+  exfalso, apply no,
+  apply exists.intro i (and.intro lia HPi),
+  apply exists.intro i,
+  apply and.intro,
+  apply nat.le_refl,
+  apply and.intro,
+  exact HPi,
+  intro k Pk,
+  cases nat.lt_or_ge k i with ltki geki,
+  exfalso, apply no,
+  apply exists.intro k,
+  apply and.intro,
+  apply le_of_lt_succ,
+  apply lt_of_lt_of_le ltki liSa,
+  exact Pk,
+  exact geki
+  end,
+  Hgeneral n !le.refl
 
-definition smallest (P : nat → Prop) [HdecP : forall A, decidable (P A)]
-(n : nat)  : P n → exists m, m ≤ n ∧ P m ∧ ∀ k, k ≤ n → k < m → ¬ P k :=
-  have Hgeneral : ∀ p, p ≤ n → P p → exists m, m ≤ p ∧ P m ∧ ∀ k, k ≤ n → k < m → ¬ P k, from sorry,
-  Hgeneral n (nat.le_refl n)
 
-lemma minSet_exists (P : finset T → Prop) [HdecP : forall A, decidable (P A)](C : finset T) (HPC : P C) :
+lemma minSet_exists (P : finset T → Prop) (HdecP : forall (A : finset T), decidable (P A)) (C : finset T) (HPC : P C) :
   exists A, minSet P A ∧ subset A C :=
-  sorry
+  let Pnat := λ (n  :nat), exists (B : finset T), card B = n ∧ P B ∧ B ⊆ C in
+  have HPnatC : Pnat (card C), from exists.intro C (and.intro rfl (and.intro HPC (subset.refl C))),
+  have Hsmallest : exists (m : nat), m ≤ (card C) ∧ Pnat m ∧ ∀ k, Pnat k → m ≤ k,
+  from @smallest T _ _ Pnat (λ n, decidable_exists_finite) (card C) HPnatC,
+  obtain m Hm, from Hsmallest,
+  begin
+  cases Hm with Hmcard Hm2,
+  cases Hm2 with HPnatm Hminm,
+  cases HPnatm with B HB,
+  apply (exists.intro B),
+  apply and.intro,
+  intro K,
+  intro HsKB,
+  apply iff.intro,
+  intro HPK,
+  apply eq_of_card_eq_of_subset,
+  have HcardKB : card K ≤ card B, from card_le_card_of_subset HsKB ,
+  have cardBK : card B ≤ card K, from
+  begin
+    rewrite (and.left HB),
+    apply ((Hminm (card K))),
+    apply (exists.intro K),
+    apply and.intro,
+    apply rfl,
+    apply and.intro,
+    exact HPK,
+    apply (subset.trans HsKB (and.right (and.right HB))),
+  end,
+  apply (eq_of_le_of_ge HcardKB cardBK),
+  exact HsKB,
+  intro Heq, rewrite Heq, exact (and.left(and.right HB)),
+  exact and.right (and.right HB)
+  end
 
 definition maxSet (P : finset T → Prop) (A : finset T) :=
   minSet (λ B, P (compl B)) (compl A)
@@ -132,23 +231,40 @@ lemma maxsetp {P : finset T → Prop} {A : finset T} : maxSet P A → P A :=
 -- can't find the two lemmas which would make this easy
 lemma maxsetsup (P : finset T → Prop) (A B : finset T) : maxSet P A → P B → A ⊆ B → B = A :=
   assume (Hmax : maxSet P A) HPB HsAB,
-  have H : _, from minsetinf (λ B, P (compl B)) (compl A) (compl B) Hmax (eq.substr (missing_compl_compl B) HPB) sorry,
-  sorry
+  have Hsub : - B ⊆ - A, from subset_compl HsAB,
+  have H : _, from minsetinf (λ B, P (- B)) (- A) (- B) Hmax (eq.substr (missing_compl_compl B) HPB) Hsub,
+  begin
+   rewrite -(missing_compl_compl),
+   rewrite H, apply missing_compl_compl
+  end
 
 lemma maxSet_exists (P : finset T → Prop) [HdecP : forall A, decidable (P A)](C : finset T) (HPC : P C) :
   exists A, maxSet P A ∧ subset C A :=
-  have H : _,  from minSet_exists (λ B, P (compl B)) (compl C) (eq.substr (missing_compl_compl C) HPC),
+  have H : _,  from minSet_exists (λ B, P (compl B)) _ (compl C) (eq.substr (missing_compl_compl C) HPC),
   obtain A HA, from H,
   exists.intro (compl A)
   (and.intro
   (eq.substr (missing_compl_compl A) (and.left HA))
-  sorry)
+  begin
+  rewrite -missing_compl_compl,
+  apply subset_compl,
+  exact and.right HA
+  end)
 
 lemma maxSet_iff {P : finset T → Prop} {A : finset T} : maxSet P A ↔ (∀ B, A ⊆ B → (P B ↔ B = A)) :=
-  iff.intro
-  (assume HmaxSet,
-  sorry)
-  (assume Hdef,
-   sorry)
+  begin
+    rewrite [↑maxSet,↑minSet],
+    apply iff.intro,
+    intro H1,
+    intro B HB,
+    have scBcA : - B ⊆ - A, from subset_compl HB,
+    have H : P B ↔ - B = - A, from eq.subst !missing_compl_compl (H1 (-B) (scBcA)),
+    rewrite [H,-eq_is_eq_compl],
+    intro H2,
+    intro B HBcA,
+    have sAcB : A ⊆ - B, from eq.subst !missing_compl_compl (subset_compl HBcA),
+    have HcBA : (P (-B) ↔ - B = A), from (H2 (-B) sAcB),
+    rewrite [HcBA,eq_is_eq_compl,missing_compl_compl]
+  end
 
 end minmax
