@@ -3,18 +3,49 @@ open nat quot list subtype binary function eq.ops finset
 
 
 section set_operations
-lemma subset_inter {T : Type} [Hdeceq : decidable_eq T] {A B C : finset T} :
-  A ⊆ B → A ⊆ C → A ⊆ B ∩ C := sorry
+lemma subset_inter {T : Type} [Hdeceq : decidable_eq T] {A B C : finset T}
+(sAB :A ⊆ B) (sAC : A ⊆ C) : A ⊆ B ∩ C :=
+  begin
+  apply subset_of_forall,
+  intro x HxA,
+  apply mem_inter,
+  apply (mem_of_subset_of_mem sAB),
+  exact HxA,
+  apply (mem_of_subset_of_mem sAC),
+  exact HxA,
+  end
 
 lemma finset_inter_subset_left {T : Type} [Hdeceq : decidable_eq T] {A B  : finset T} :
-  A ∩ B ⊆ A := sorry
+  A ∩ B ⊆ A :=
+  begin
+  apply subset_of_forall,
+  intros x HxAintB,
+  apply (finset.mem_of_mem_inter_left HxAintB),
+  end
 
 lemma finset_inter_subset_right {T : Type} [Hdeceq : decidable_eq T] {A B  : finset T} :
-  A ∩ B ⊆ B := sorry
+  A ∩ B ⊆ B :=
+  begin
+    apply subset_of_forall,
+    intros x HxAintB,
+    apply (finset.mem_of_mem_inter_right HxAintB),
+  end
 
--- why is this hard to prove?
 lemma missing_compl_compl {T : Type} [HfT : fintype T] [Hdeceq : decidable_eq T] (A : finset T) : finset.compl (finset.compl A) = A :=
-  sorry
+  begin
+    apply eq_of_subset_of_subset,
+  apply subset_of_forall,
+  intro x HxnnA,
+  have  nnxA : x ∉ finset.compl A, from not_mem_of_mem_compl HxnnA,
+  rewrite (not_iff_not_of_iff (mem_compl_iff A x)) at nnxA,
+  exact (not_not_elim nnxA),
+  apply subset_of_forall,
+  intro x HxA,
+  apply mem_compl,
+  rewrite (not_iff_not_of_iff (mem_compl_iff A x)),
+  apply not_not_intro,
+  exact HxA
+  end
 
 -- less sure that the next two are really necessary
 
@@ -121,4 +152,3 @@ lemma maxSet_iff {P : finset T → Prop} {A : finset T} : maxSet P A ↔ (∀ B,
    sorry)
 
 end minmax
-
