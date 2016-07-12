@@ -58,7 +58,16 @@ have L = elt_of (tag L Llcoset), from elt_of.tag L Llcoset,
 rewrite [this,Heq]
 end
 
-lemma psiH_eq_phiH (K : finset G) (HKNH : K ⊆ normalizer H) : image (phiH H) K = (get_coset_type_alt H) ' ((psiH H) ' K) :=
+lemma psiH_eq_phiH (K : finset G) (HKNH : K ⊆ normalizer H) (a : G) (HaK : a ∈ K) :
+  phiH H a = (get_coset_type_alt H) (psiH H a) :=
+  begin
+  rewrite [↑phiH, ↑get_coset_type_alt],
+  have Hanorm : a ∈ normalizer H, from mem_of_subset_of_mem HKNH HaK,
+  rewrite (dif_pos Hanorm),
+  rewrite (dif_pos (is_fin_lcoset_fin_lcoset H a Hanorm))
+  end
+
+lemma psiH_eq_phiH_ext (K : finset G) (HKNH : K ⊆ normalizer H) : image (phiH H) K = (get_coset_type_alt H) ' ((psiH H) ' K) :=
 ext
   (take a, iff.intro
   (
@@ -97,7 +106,7 @@ ext
 
 lemma card_im_phi_lcosets (K : finset G) (HKNH : K ⊆ normalizer H) : card ((phiH H) ' K) = card (psiH H ' K) :=
   begin
-   rewrite (psiH_eq_phiH H K HKNH),
+   rewrite (psiH_eq_phiH_ext H K HKNH),
    apply card_image_eq_of_inj_on,
    exact (injective_gct_alt _ _ HKNH),
   end
@@ -270,7 +279,13 @@ lemma phiHHone (h : G) (memhH : h ∈ H) : phiH H h = 1 := sorry
 
 lemma phiH_ker_on : ker_on (normalizer H) (phiH H) = H :=
   set.eq_of_subset_of_subset
-  (take h Hhker, sorry)
+  (take h Hhker,
+  have Hnorm : h ∈ normalizer H, from and.left Hhker,
+  have Hone : phiH H h = 1, from and.right Hhker,
+  begin
+
+    -- rewrite !psiH_eq_phiH at
+  end
   (take h HhH,
 mem_sep (set.mem_of_subset_of_mem (eq.subst (subset_eq_to_set_subset _ _) subset_normalizer) HhH) (phiHHone H h HhH))
   -- eq_of_subset_of_subset (subset_of_forall sorry) (subset_of_forall sorry)
