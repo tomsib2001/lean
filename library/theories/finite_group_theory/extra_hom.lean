@@ -104,6 +104,12 @@ theorem hom_on_map_mul_closed (H : set A) (sHF : H ⊆ F) : mul_closed_on H → 
         ... = b1 * b2 : {and.right Pa2},
         mem_image Pa1a2 Pb1b2
 
+lemma ker_on.maps_to_one (x : A) (Hxker : x ∈ ker_on F f) : f x = 1 :=
+  and.right Hxker
+
+lemma ker_on.in_F (x : A) (Hxker : x ∈ ker_on F f) : x ∈ F :=
+  and.left Hxker
+
 lemma ker_on.has_one : 1 ∈ ker_on F f := and.intro (Fhasone F) (hom_on_map_one F f)
 
 lemma ker_on.has_inv : subgroup.has_inv (ker_on F f) :=
