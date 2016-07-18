@@ -1,6 +1,5 @@
 import data.fintype.basic data.nat data.list.perm data.finset algebra.binary algebra.ordered_ring
-open nat quot list subtype binary function eq.ops finset
-
+open nat quot subtype binary function eq.ops finset
 
 section set_operations
 
@@ -69,6 +68,22 @@ lemma eq_is_eq_compl {T : Type} [HfT : fintype T] [Hdeceq : decidable_eq T] {A B
     apply missing_compl_compl
   end
 
+
+lemma image_id {T : Type} [HfT : fintype T] [Hdeceq : decidable_eq T] {A : finset T} : id ' A = A := ext (take a, iff.intro (suppose Ha : a ∈ id ' A,
+  begin
+  rewrite mem_image_iff at Ha,
+  cases Ha with x Hx,
+  cases Hx with HxA Hxa,
+  rewrite ↑id at Hxa,
+  exact (eq.subst Hxa HxA)
+  end)
+  (suppose a ∈ A,
+    begin
+    rewrite mem_image_iff,
+    apply (exists.intro a),
+    exact and.intro this rfl
+    end))
+
 -- less sure that the next two are really necessary
 
 lemma image_singleton {A B : Type} [hA: decidable_eq A] [hB: decidable_eq B] (f : A → B) (a : A) :
@@ -76,6 +91,15 @@ image f (insert a empty) =  insert (f a) empty :=
 begin
 rewrite image_insert
 end
+
+lemma singleton_subset_iff {A : Type} [hA: decidable_eq A] (a : A) (S : finset A) : '{a} ⊆ S ↔ a ∈ S :=
+  iff.intro (take H, mem_of_subset_of_mem H (mem_singleton a))
+  (take HaS,
+  begin
+  apply subset_of_forall,
+  intro x Hx, rewrite mem_singleton_iff at Hx,
+  rewrite Hx, exact HaS
+  end)
 
 lemma insert_empty {A : Type} [hAdec : decidable_eq A] (a : A) (b : A) :
 finset.insert a finset.empty = insert b empty → a = b :=
@@ -87,11 +111,23 @@ intro Habs,
 exact false.elim (not_mem_empty a Habs)
 end
 
+lemma subset_sep_iff {A : Type} [fintype A] [decidable_eq A] (p1 p2 : A → Prop) [decidable_pred (λ x, p1 x)] [decidable_pred (λ x, p2 x)] : {x ∈ univ | p1 x} ⊆ {x ∈ univ | p2 x} ↔ ∀ (x : A), p1 x → p2 x :=
+begin
+ apply iff.intro,
+ intro Hp1p2,
+ intro x Hp1x,
+ have Hsepp1x : x ∈ sep p1 univ, from mem_sep_of_mem (mem_univ _) Hp1x,
+ have Hp2x : x ∈ sep p2 univ, from mem_of_subset_of_mem Hp1p2 Hsepp1x,
+ exact (of_mem_sep Hp2x),
+ intro Hp1p2,
+ have H : ∀ (x : A), x ∈ {x ∈ univ | p1 x} → x ∈ { x ∈ univ | p2 x}, from
+ take x Hx, begin apply mem_sep_of_mem (mem_univ _), apply Hp1p2 x (of_mem_sep Hx) end,
+ apply subset_of_forall H
+end
 
 end set_operations
 
 section finset_of_fintype
-
 
 definition fintype_of_finset [instance] {T : Type} [HfT : fintype T] : fintype (finset T) := fintype.mk sorry sorry sorry
 
