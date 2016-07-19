@@ -1,9 +1,95 @@
 import data algebra.group theories.finite_group_theory.subgroup theories.finite_group_theory.finsubg data.finset.extra_finset
-open function finset group_theory subtype nat set
+open function finset group_theory subtype nat
 
-open group_theory nat
+open group_theory nat finset
+
+section missing
+
+lemma injective_image {A B : Type} [HdeceqB : decidable_eq B] (f : A → B) (Hinjf : injective f) : injective (image f : finset A → finset B) :=
+  assume s1 s2 Heqfs1s2,
+  eq_of_subset_of_subset
+  (subset_of_forall
+    (take x Hxs1,
+    have Hfx : f x ∈ f ' s2, from eq.subst Heqfs1s2 (mem_image_of_mem f Hxs1),
+    obtain x2 (Hx2 : x2 ∈ s2 ∧ f x2 = f x), from eq.subst (mem_image_eq f) Hfx,
+    have Heq : x2 = x, from Hinjf (and.right Hx2),
+    eq.subst Heq (and.left Hx2)
+    ))
+  (subset_of_forall
+  (
+  take x Hxs2,
+    have Hfx : f x ∈ f ' s1, from eq.substr Heqfs1s2 (mem_image_of_mem f Hxs2),
+    obtain x1 (Hx1 : x1 ∈ s1 ∧ f x1 = f x), from eq.subst (mem_image_eq f) Hfx,
+    have Heq : x1 = x, from Hinjf (and.right Hx1),
+    eq.subst Heq (and.left Hx1)
+  ))
+
+end missing
+
 
 namespace group_theory
+
+section fin_rcoset
+
+variables {A : Type} [HdeceqA : decidable_eq A] [groupA : group A]
+variables (H G : finset A)
+variable [is_finsubgG : is_finsubg G]
+variable [is_finsubgH : is_finsubg H]
+include HdeceqA
+include groupA
+
+local attribute fin_lcosets [reducible]
+
+definition fin_rcosets [reducible] : finset (finset A) :=  (fin_rcoset H) ' G
+
+include is_finsubgG
+include is_finsubgH
+
+lemma image_inv : inv ' G = G :=
+  ext (take x, iff.intro (assume HxinvG,
+  begin
+   rewrite mem_image_iff at HxinvG,
+   cases HxinvG with y Hy,
+   cases Hy with HyG Hyinv,
+   rewrite -Hyinv,
+   apply finsubg_has_inv G HyG,
+  end) (assume HxG, mem_image (finsubg_has_inv G HxG) (inv_inv x)))
+
+lemma image_fin_inv_lcosets : fin_inv ' (fin_lcosets H G) = fin_rcosets H G :=
+  begin
+   rewrite -image_comp,
+   rewrite ↑fin_rcosets,
+   rewrite -(image_inv G G) at {2},
+   rewrite -image_comp,
+   congruence,
+   apply funext, intro x,
+   rewrite ↑comp,
+   rewrite (finsubg_inv_lcoset_eq_rcoset)
+  end
+
+lemma injective_fin_inv : @injective (finset A) _ fin_inv := injective_image inv (take a b, inv.inj)
+
+lemma inj_on_fin_inv (B : finset (finset A)) : set.inj_on fin_inv B :=
+  take a b Ha Hb Heq, injective_fin_inv H G Heq
+
+lemma card_rcosets_eq_card_lcosets :
+  card (fin_rcosets H G) = card (fin_lcosets H G) :=
+  begin
+   have fin_rcosets H G = fin_inv ' (fin_lcosets H G), from eq.symm !image_fin_inv_lcosets,
+  rewrite this,
+  rewrite (card_image_eq_of_inj_on (inj_on_fin_inv H G _)),
+  end
+
+--   calc
+--   card (fin_rcosets H G) = card (fin_inv ' (fin_lcosets H G)) : {image_fin_inv_lcosets H G}
+--   ...                    = card (fin_lcosets H G) : sorry
+--   -- begin
+--   --   rewrite -(image_fin_inv_lcosets H G),
+--   -- -- card_image_eq_of_inj_on _
+--   -- end
+-- end
+
+end fin_rcoset
 
 section groupStructure
 

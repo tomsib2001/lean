@@ -1,10 +1,11 @@
 import algebra.group data theories.finite_group_theory.hom theories.finite_group_theory.perm theories.finite_group_theory.finsubg theories.finite_group_theory.action data.finset.extra_finset data.finset
+import data.finset.partition
+import theories.finite_group_theory.extra_finsubg
 
 -- namespace group_theory
 open finset function perm group_theory nat
 
 lemma eq_im_of_eq_f {A B : Type} [decidable_eq B] (f g : A → B) (S : finset A) : f = g → f ' S = g ' S := take Hfg, by rewrite Hfg
-
 
 local attribute perm.f [coercion]
 
@@ -16,28 +17,6 @@ end action_on_subset
 
 section conjugation_action
 
-section missing
-
-lemma injective_image {A B : Type} [HdeceqB : decidable_eq B] (f : A → B) (Hinjf : injective f) : injective (image f : finset A → finset B) :=
-  assume s1 s2 Heqfs1s2,
-  eq_of_subset_of_subset
-  (subset_of_forall
-    (take x Hxs1,
-    have Hfx : f x ∈ f ' s2, from eq.subst Heqfs1s2 (mem_image_of_mem f Hxs1),
-    obtain x2 (Hx2 : x2 ∈ s2 ∧ f x2 = f x), from eq.subst (mem_image_eq f) Hfx,
-    have Heq : x2 = x, from Hinjf (and.right Hx2),
-    eq.subst Heq (and.left Hx2)
-    ))
-  (subset_of_forall
-  (
-  take x Hxs2,
-    have Hfx : f x ∈ f ' s1, from eq.substr Heqfs1s2 (mem_image_of_mem f Hxs2),
-    obtain x1 (Hx1 : x1 ∈ s1 ∧ f x1 = f x), from eq.subst (mem_image_eq f) Hfx,
-    have Heq : x1 = x, from Hinjf (and.right Hx1),
-    eq.subst Heq (and.left Hx1)
-  ))
-
-end missing
 
 variables {G : Type} [Hgr : group G] [ Hft : fintype G]
 include Hgr Hft
@@ -156,25 +135,27 @@ section partial_actions
 
 open finset function
 
-local attribute perm.f [coercion]
+-- local attribute perm.f [coercion]
 
 -- aT is the type of the acting group
 -- rT is the return type of the set on which the action is done
 variables {aT rT : Type} [group aT] [fintype rT] [fintype aT]
-variables [Hdeceq_aT : decidable_eq aT]
-variables [Hdeceq_rT : decidable_eq rT]
 -- variable (D : finset aT) -- the domain
+variable [Hdeceq_aT : decidable_eq aT]
+variable [Hdeceq_rT : decidable_eq rT]
 
 
 section defs
 
+variable (D : finset aT)
+variable (to : rT → aT → rT)
 
-definition act_morph (D : finset aT) (to : rT → aT → rT) (x : rT) :=
+definition act_morph (x : rT) :=
   forall (a b : aT), a ∈ D → b ∈ D → to x (a * b) = to (to x a) b
 
 definition left_injective {A B C : Type} (f : A → B → C) := forall (y: B), injective (λ x, f x y)
 
-definition is_action [class] (D : finset aT) (to : rT → aT → rT) := left_injective to ∧ ∀ (x : rT),  act_morph D to x
+definition is_action [class] := left_injective to ∧ ∀ (x : rT),  act_morph D to x
 
 -- definition act_dom D to := -- not sure how to define this one
 
@@ -182,10 +163,13 @@ set_option formatter.hide_full_terms false
 
 include Hdeceq_aT
 
-definition actm (D : finset aT) (to : rT → aT → rT) [Hact_to : is_action D to] a :=
+variable [Hact_to : is_action D to]
+include Hact_to
+
+definition actm a :=
   if a ∈ D then (λ x, to x a) else (id : rT → rT)
 
-definition actm_inj (D : finset aT) (to : rT → aT → rT) [Hact_to : is_action D to] (a : aT) :
+definition actm_inj (a : aT) :
  injective (actm D to a) := take x y,
  begin cases decidable.em (a ∈ D) with aD naD,
  rewrite ↑actm,
@@ -195,43 +179,71 @@ definition actm_inj (D : finset aT) (to : rT → aT → rT) [Hact_to : is_action
  intro H, exact H
  end
 
-definition actm_perm (D : finset aT) (to : rT → aT → rT) [Hact_to : is_action D to] (a : aT) : perm rT := perm.mk (actm D to a) (actm_inj D to a)
+definition actm_perm (a : aT) : perm rT :=
+  perm.mk (actm D to a) (actm_inj D to a)
 
 include Hdeceq_rT
 
+
 -- the orbit of x under the action of A
-definition orbit [reducible] (to : rT → aT → rT) (A : finset aT) (x : rT) := to x ' A
+definition orbit [reducible] (A : finset aT) (x : rT) := to x ' A
+
+-- Definition amove to A x y := [set a in A | to x a == y].
+definition amove [reducible] (A : finset aT) (x y : rT) := { a ∈ A | to x a = y}
 
 -- definition afix (to : rT → aT → rT) (A : finset aT) := { x ∈ univ | orbit to A x = '{x} }
 
-definition afix [reducible] (to : rT → aT → rT) (A : finset aT) := { x ∈ univ | A ⊆ {a ∈ univ | to x a = x} }
+definition afix [reducible] (A : finset aT) := { x ∈ univ | A ⊆ {a ∈ univ | to x a = x} }
 
 -- definition is_fixed_point to A x :=
 
 -- stabilizer in S : all elements a of the domain D such that the action of a fixes all S
 -- Definition astab S to := D :&: [set a | S \subset [set x | to x a == x]].
-definition astab [reducible] (D : finset aT) (S : finset rT) to := D ∩ { a ∈ univ | S ⊆ {x ∈ univ | to x a = x}}
+definition astab [reducible] (S : finset rT) := D ∩ { a ∈ univ | S ⊆ {x ∈ univ | to x a = x}}
+
+definition astab_in [reducible] (G : finset aT) [is_finsubg G] (S : finset rT) := G ∩ astab D to S
 
 -- (*      'N_A(S | to) == the global stabiliser of S : {set rT} in D :&: A.     *)
 -- Definition astabs S to := D :&: [set a | S \subset to^~ a @^-1: S].
 -- Notation "''N' ( S | to )" := (astabs S to)
 
-definition astabs [reducible] (D : finset aT) S to := D ∩ { a ∈ univ | S ⊆ {(x : rT) ∈ univ | to x a ∈ S}}
+definition astabs [reducible] (S : finset rT) :=
+  D ∩ { a ∈ univ | S ⊆ {(x : rT) ∈ univ | to x a ∈ S}}
 
 -- Definition acts_on A S to := {in A, forall a x, (to x a \in S) = (x \in S)}.
 -- this corresponds to  {acts A, on S | to} == A acts on the set S (Prop statement).
-definition acts_on_prop [reducible] (A : finset aT) (S : finset rT) to := ∀ a s, a ∈ A → s ∈ S → (to s a ∈ S ↔ s ∈ S)
+definition acts_on_prop [reducible] (A : finset aT) (S : finset rT) :=
+  ∀ a s, a ∈ A → s ∈ S → (to s a ∈ S ↔ s ∈ S)
 
-definition acts_on [reducible] (D : finset aT) (A : finset aT) (S : finset rT) to := A ⊆ astabs D S to
+definition acts_on [reducible] (A : finset aT) (S : finset rT) :=
+  A ⊆ astabs D to S
 
 -- Definition atrans A S to := S \in orbit to A @: S.
-definition atrans [reducible] (A : finset aT) (S : finset rT) to := S ∈ orbit to A ' S
+definition atrans [reducible] (A : finset aT) (S : finset rT) := S ∈ orbit D to A ' S
 
-definition faithful [reducible] (D : finset aT) (A : finset aT) (S : finset rT) to :=
-A ∩ astab D S to
+definition faithful [reducible] (A : finset aT) (S : finset rT) :=
+A ∩ astab D to S ⊆ '{1}
 
 -- Notation "[ 'acts' A , 'on' S | to ]" := (A \subset pred_of_set 'N(S | to))
 
+
+-- a few lemma to make proofs easier
+
+lemma amove_of_to {A x y a} : a ∈ A → to x a = y → a ∈ amove D to A x y :=
+  assume HaA Hto, mem_sep_of_mem HaA Hto
+
+lemma to_of_amove {A x y a} : a ∈ A → a ∈ amove D to A x y → to x a = y :=
+  assume HaA Hamove,
+  of_mem_sep Hamove
+
+lemma astab_of_mem (S : finset rT) (g : aT) : g ∈ D → (∀ s, s ∈ S → to s g = s) →  g ∈ astab D to S := take HgD HSg,
+  begin
+   apply (mem_inter HgD),
+   apply mem_sep_of_mem !mem_univ,
+   apply subset_of_forall,
+   intro s HsS, apply mem_sep_of_mem !mem_univ,
+   apply HSg s HsS
+  end
 
 end defs
 
@@ -291,7 +303,7 @@ lemma setact_is_action : is_action D (λ (S : finset rT) (a : aT) , (λ s, to s 
 -- Proof. by apply: (iffP imsetP) => [] [a]; exists a. Qed.
 
 lemma orbitP A (x y : rT) :
-  y ∈ orbit to A x ↔ exists a, a ∈ A ∧ to x a = y :=
+  y ∈ orbit D to A x ↔ exists a, a ∈ A ∧ to x a = y :=
   iff.intro
   (take Hyorbit,
   begin
@@ -305,9 +317,9 @@ lemma orbitP A (x y : rT) :
   exact Him
   end)
 
-lemma mem_orbit (A : finset aT) (x : rT) (a : aT) : a ∈ A → to x a ∈ orbit to A x := assume Ha, mem_image Ha rfl
+lemma mem_orbit (A : finset aT) (x : rT) (a : aT) : a ∈ A → to x a ∈ orbit D to A x := assume Ha, mem_image Ha rfl
 
-lemma afixP (A : finset aT) (x : rT) : (∀ a, a ∈ A → to x a = x) ↔ x ∈ afix to A :=
+lemma afixP (A : finset aT) (x : rT) : (∀ a, a ∈ A → to x a = x) ↔ x ∈ afix D to A :=
 begin
 rewrite ↑afix,
 apply iff.intro,
@@ -328,7 +340,7 @@ exact (and.right Ha1)
 end
 
 -- Lemma afixS A B : A \subset B -> 'Fix_to(B) \subset 'Fix_to(A).
-lemma afixS (A B : finset aT) : A ⊆ B → afix to B ⊆ afix to A :=
+lemma afixS (A B : finset aT) : A ⊆ B → afix D to B ⊆ afix D to A :=
   assume sAB,
   begin
   rewrite ↑afix,
@@ -341,10 +353,10 @@ lemma afixS (A B : finset aT) : A ⊆ B → afix to B ⊆ afix to A :=
   end
 
 -- Lemma afixU A B : 'Fix_to(A :|: B) = 'Fix_to(A) :&: 'Fix_to(B).
-lemma afixU (A B : finset aT) : afix to (A ∩ B) = afix to A ∩ afix to B := sorry
+lemma afixU (A B : finset aT) : afix D to (A ∩ B) = afix D to A ∩ afix D to B := sorry
 
 -- Lemma afix1P a x : reflect (to x a = x) (x \in 'Fix_to[a]).
-lemma afix1P (a : aT) (x : rT) : to x a = x ↔ x ∈ afix to '{a} :=
+lemma afix1P (a : aT) (x : rT) : to x a = x ↔ x ∈ afix D to '{a} :=
 iff.intro  (assume Hxfix, mem_sep_of_mem (mem_univ _)
   (begin
   have ∀ b, b ∈ '{a} → b ∈ {a ∈ univ | to x a = x}, from take b Hb,
@@ -362,7 +374,7 @@ iff.intro  (assume Hxfix, mem_sep_of_mem (mem_univ _)
   end)
 
 -- Lemma astabIdom S : 'C_D(S | to) = 'C(S | to).
-lemma astabIdom (S : finset rT) : D ∩ astab D S to = astab D S to :=
+lemma astabIdom (S : finset rT) : D ∩ astab D to S = astab D to S :=
   begin
     rewrite ↑astab,
     rewrite -inter_assoc,
@@ -370,10 +382,10 @@ lemma astabIdom (S : finset rT) : D ∩ astab D S to = astab D S to :=
   end
 
 -- Lemma astab_dom S : {subset 'C(S | to) <= D}.
-lemma astab_dom (S : finset rT) : astab D S to ⊆ D := finset_inter_subset_left
+lemma astab_dom (S : finset rT) : astab D to S ⊆ D := finset_inter_subset_left
 
 -- Lemma astab_act S a x : a \in 'C(S | to) -> x \in S -> to x a = x.
-lemma astab_act (S : finset rT) (a : aT) (x : rT) : a ∈ astab D S to → x ∈ S → to x a = x :=
+lemma astab_act (S : finset rT) (a : aT) (x : rT) : a ∈ astab D to S → x ∈ S → to x a = x :=
   begin
     intro Ha Hx,
     rewrite mem_inter_iff at Ha,
@@ -383,7 +395,7 @@ lemma astab_act (S : finset rT) (a : aT) (x : rT) : a ∈ astab D S to → x ∈
   end
 
 -- Lemma astabS S1 S2 : S1 \subset S2 -> 'C(S2 | to) \subset 'C(S1 | to).
-lemma astabS (S1 S2 : finset rT) : S1 ⊆ S2 → astab D S2 to ⊆  astab D S1 to :=
+lemma astabS (S1 S2 : finset rT) : S1 ⊆ S2 → astab D to S2 ⊆  astab D to S1 :=
   assume s12,
   subset_of_forall
   (take a Ha,
@@ -392,15 +404,15 @@ lemma astabS (S1 S2 : finset rT) : S1 ⊆ S2 → astab D S2 to ⊆  astab D S1 t
    (mem_sep_of_mem !mem_univ (subset_of_forall (take x HxS1, (mem_sep_of_mem !mem_univ (astab_act to D S2 a x Ha (mem_of_subset_of_mem s12 HxS1)))))))
 
 -- Lemma astabsIdom S : 'N_D(S | to) = 'N(S | to).
-lemma astabsIdom (S : finset rT) : D ∩ astabs D S to ⊆ astabs D S to :=
+lemma astabsIdom (S : finset rT) : D ∩ astabs D to S ⊆ astabs D to S :=
   finset_inter_subset_right
 
 -- Lemma astabs_dom S : {subset 'N(S | to) <= D}.
-lemma astabs_dom (S : finset rT) : astabs D S to ⊆ D :=
+lemma astabs_dom (S : finset rT) : astabs D to S ⊆ D :=
   finset_inter_subset_left
 
 -- Lemma astabs_act S a x : a \in 'N(S | to) -> (to x a \in S) = (x \in S).
-lemma astabs_act (S : finset rT) (a : aT) (x : rT) : a ∈ astabs D S to → (to x a ∈ S ↔ x ∈ S) :=
+lemma astabs_act (S : finset rT) (a : aT) (x : rT) : a ∈ astabs D to S → (to x a ∈ S ↔ x ∈ S) :=
   assume Ha,
   begin
   rewrite ↑astabs at Ha,
@@ -435,7 +447,7 @@ lemma astabs_act (S : finset rT) (a : aT) (x : rT) : a ∈ astabs D S to → (to
   end
 
 -- Lemma astab_sub S : 'C(S | to) \subset 'N(S | to).
-lemma astab_sub (S : finset rT) : astab D S to ⊆ astabs D S to :=
+lemma astab_sub (S : finset rT) : astab D to S ⊆ astabs D to S :=
   subset_of_forall (take a Ha,
   mem_inter (mem_of_subset_of_mem (astab_dom to D S) Ha) (mem_sep_of_mem !mem_univ
   begin
@@ -460,16 +472,14 @@ lemma astab_sub (S : finset rT) : astab D S to ⊆ astabs D S to :=
 
 -- Lemma acts_dom A S : [acts A, on S | to] -> A \subset D.
 
-lemma acts_dom (A : finset aT) (S : finset rT) : acts_on D A S to → A ⊆ D :=
+lemma acts_dom (A : finset aT) (S : finset rT) : acts_on D to A S → A ⊆ D :=
   take Hacts, subset.trans Hacts !finset_inter_subset_left
 
-
 -- Lemma acts_act A S : [acts A, on S | to] -> {acts A, on S | to}.
-
-lemma acts_act (A : finset aT) (S : finset rT) : acts_on D A S to → acts_on_prop A S to :=
+lemma acts_act (A : finset aT) (S : finset rT) : acts_on D to A S → acts_on_prop D to A S :=
   assume Hacts_on,
   begin intros a x Ha Hx,
-  have a ∈ astabs D S to ,
+  have a ∈ astabs D to S ,
   from mem_of_subset_of_mem Hacts_on Ha,
   exact (astabs_act to D S a x this)
   end
@@ -512,16 +522,16 @@ lemma actKVin (x : rT) (a : aT) : a ∈ D → to (to x a⁻¹) a = x :=
     rewrite (actKin to D x (a⁻¹) (finsubg_has_inv D HaD)),
   end
 
-lemma orbit_refl G [is_finsubg G] (x : rT) : x ∈ orbit to G x :=
+lemma orbit_refl G [is_finsubg G] (x : rT) : x ∈ orbit D to G x :=
   begin
   -- rewrite -(act1 to D),
-  have to x 1 ∈ orbit to G x, from (mem_orbit to D G x 1 (finsubg_has_one G)),
+  have to x 1 ∈ orbit D to G x, from (mem_orbit to D G x 1 (finsubg_has_one G)),
   exact (eq.subst (act1 to D x) this)
   end
 
 -- Lemma orbit_in_sym G : G \subset D -> symmetric (orbit_rel G).
 
-definition orbit_rel A := λ x y, x ∈ orbit to A y
+definition orbit_rel A := λ x y, x ∈ orbit D to A y
 
 
 
@@ -566,11 +576,11 @@ lemma orbit_in_trans (G : finset aT) [is_finsubg G]: G ⊆ D → transitive (orb
 --  G \subset D -> reflect (orbit to G x = orbit to G y) (x \in orbit to G y).
 lemma orbit_in_eqP (G : finset aT) [is_finsubg G] (x y : rT) :
   G ⊆ D →
-  ((orbit to G x = orbit to G y) ↔ (x ∈ orbit to G y)) :=
+  ((orbit D to G x = orbit D to G y) ↔ (x ∈ orbit D to G y)) :=
   begin
   intro sGD,
   apply iff.intro,
-  intro Heq, rewrite -Heq, apply (orbit_refl to D),
+  intro Heq, rewrite -Heq, apply (orbit_refl to D G),
   intro Hxorby,
   apply ext,
   intro a,
@@ -585,23 +595,240 @@ lemma orbit_in_eqP (G : finset aT) [is_finsubg G] (x y : rT) :
   apply Hay
   end
 
--- this is the wrong kind of partition, on the whole type
-lemma orbit_partition (G : finset aT) [is_finsubg G] (S : finset rT) :
-  acts_on D G S to → is_partition (orbit to D) :=
+-- -- this is the wrong kind of partition, on the whole type
+-- -- this lemma is pretty much useless
+-- lemma orbit_is_partition (G : finset aT) [is_finsubg G] (S : finset rT) :
+--   acts_on D to G S → is_partition (orbit D to D) :=
+--   assume Hacts_on,
+--   have sGD : G ⊆ D, from acts_dom to D G S Hacts_on,
+--   begin
+--     intro a b,
+--     apply classical.eq.of_iff,
+--     apply iff.intro,
+--     rewrite (orbit_in_eqP to D D a b !subset.refl),
+--     intro H, exact H,
+--     intro H,
+--     rewrite -(orbit_in_eqP to D D a b !subset.refl),
+--     exact H
+--   end
+
+lemma orbit_is_partition (G : finset aT) [is_finsubg G] (S : finset rT) :
+  acts_on D to G S → is_partition (orbit D to G) :=
   assume Hacts_on,
   have sGD : G ⊆ D, from acts_dom to D G S Hacts_on,
   begin
     intro a b,
     apply classical.eq.of_iff,
     apply iff.intro,
-    rewrite (orbit_in_eqP to D D a b !subset.refl),
+    rewrite (orbit_in_eqP to D G a b sGD),
     intro H, exact H,
     intro H,
-    rewrite -(orbit_in_eqP to D D a b !subset.refl),
+    rewrite -(orbit_in_eqP to D G a b sGD),
     exact H
   end
 
 
+-- same here
+definition orbit_partition_univ (G : finset aT) [is_finsubg G] (S : finset rT) (Hacts_on : acts_on D to G S) : @partition rT _ :=
+  partition.mk univ (orbit D to G) (orbit_is_partition to D G S Hacts_on)
+  (partition.restriction_imp_union (orbit D to G)
+  (orbit_is_partition to D G S Hacts_on)
+  (λ a Pa, !subset_univ))
+
+definition orbit_partition (G : finset aT) [is_finsubg G] (S : finset rT) (Hacts_on : acts_on D to G S) : @partition rT _ :=
+  partition.mk S (orbit D to G) (orbit_is_partition to D G S Hacts_on)
+  (partition.restriction_imp_union (orbit D to G)
+  (orbit_is_partition to D G S Hacts_on)
+  (λ a Pa,
+  begin
+  rewrite ↑acts_on at Hacts_on, -- check_expr (astabs_act to D S),
+  apply subset_of_forall,
+  intro x Hx, rewrite orbitP at Hx,
+  cases Hx with g Hg,
+  cases Hg with HgG Hagx,
+  rewrite -Hagx,
+  rewrite (astabs_act to D S g a (mem_of_subset_of_mem Hacts_on HgG)),
+  exact Pa
+  end))
+
+
+definition orbits (G : finset aT) [is_finsubg G]  (S : finset rT) (Hacts_on : acts_on D to G S) : finset (finset rT) := partition.equiv_classes (orbit_partition to D G S Hacts_on)
+
+set_option formatter.hide_full_terms false
+
+lemma orbit_class_equation (G : finset aT) [is_finsubg G]  (S : finset rT) (Hacts_on : acts_on D to G S) :
+  card S = Sum (orbits to D G S Hacts_on) card :=
+partition.class_equation (orbit_partition to D G S Hacts_on)
+
+
 end partial_action
+
+section orbit_stabilizer
+
+variables (to : rT → aT → rT) (D : finset aT) [Hact_to : is_action D to] [groupD : is_finsubg D]
+-- variables (D : finset aT) [groupD : is_finsubg D]
+variables (G : finset aT) [groupG : is_finsubg G]
+variable x : rT
+variable (sGD : G ⊆ D)
+include sGD
+
+include Hdeceq_rT
+include Hdeceq_aT
+include Hact_to
+include groupG
+include groupD
+
+-- Lemma amove_act a : a \in G -> amove to G x (to x a) = 'C_G[x | to] :* a.
+lemma amove_act (a : aT) : a ∈ G → amove D to G x (to x a) = fin_rcoset (astab_in D to G '{x}) a := take HaG,
+  begin
+    apply ext,
+    intro b,
+    apply iff.intro,
+    intro Hbx,
+    rewrite [↑fin_rcoset,mem_image_iff],
+    rewrite mem_sep_iff at Hbx,
+    apply (exists.intro (b * a⁻¹)),
+    apply and.intro,
+    have invaG : a⁻¹ ∈ G, from finsubg_has_inv G HaG,
+    have HbinvaG : (b * a⁻¹) ∈ G, from (finsubg_mul_closed _ (and.left Hbx) invaG),
+    apply mem_inter,
+    exact HbinvaG,
+    apply (mem_inter (mem_of_subset_of_mem sGD HbinvaG)),
+    apply (mem_sep_of_mem !mem_univ),
+    rewrite singleton_subset_iff,
+    apply (mem_sep_of_mem !mem_univ),
+    rewrite (actMin to D x b a⁻¹ (mem_of_subset_of_mem sGD (and.left Hbx)) (mem_of_subset_of_mem sGD invaG)),
+    rewrite (and.right Hbx),
+    rewrite -(actMin to D x a a⁻¹ (mem_of_subset_of_mem sGD HaG) (mem_of_subset_of_mem sGD invaG)),
+    have Hobvious : a * a⁻¹ = 1, from sorry, -- still can't find this lemma
+    rewrite Hobvious,
+    apply (act1 to D x),
+    rewrite ↑rmul_by,
+    -- rewrite -(inv_inv a),
+    have Hobvious1 : a⁻¹ * a = 1, from sorry,
+    rewrite [!mul.assoc,Hobvious1],
+    rewrite mul_one,
+    intro Hb,
+    rewrite ↑fin_rcoset at Hb,
+    rewrite mem_image_iff at Hb,
+    cases Hb with g Hg,
+    cases Hg with HgGastab Hagb,
+    rewrite mem_inter_eq at HgGastab,
+    apply amove_of_to,
+    rewrite [-Hagb,↑rmul_by],
+    apply (finsubg_mul_closed G ),
+    exact and.left HgGastab,
+    exact HaG,
+    rewrite [-Hagb,↑rmul_by],
+    rewrite (actMin to D x g a (mem_of_subset_of_mem sGD (and.left HgGastab)) (mem_of_subset_of_mem sGD HaG)),
+    rewrite (astab_act to D '{x} g x (and.right HgGastab) (mem_singleton x)),
+  end
+
+lemma amove_orbit : (amove D to G x) ' (orbit D to G x) = fin_rcosets (astab_in D to G '{x}) (G : finset aT) :=
+ext (take S,
+  begin
+   apply iff.intro,
+     intro HSmove_orbit,
+     rewrite mem_image_iff at HSmove_orbit,
+     cases HSmove_orbit with y Hy,
+     cases Hy with Horbit Hamove,
+     rewrite orbitP at Horbit,
+     cases Horbit with g HgG,
+     cases HgG with HgG Hgxy,
+     rewrite -Hgxy at Hamove,
+     rewrite (amove_act to D G x sGD g HgG) at Hamove,
+     rewrite -Hamove,
+     apply mem_image HgG rfl,
+
+  intro Hrcosets,
+  rewrite mem_image_iff at Hrcosets,
+  cases Hrcosets with g Hg,
+  cases Hg with HgG Hgrcoset,
+  rewrite -(amove_act to D G x sGD g HgG) at Hgrcoset,
+  rewrite -Hgrcoset,
+  have Hmemorbit : to x g ∈ orbit D to G x, from mem_image HgG rfl,
+  apply mem_image Hmemorbit,
+  apply rfl
+  end)
+
+
+
+-- -- Lemma amove_orbit : amove to G x @: orbit to G x = rcosets 'C_G[x | to] G.
+-- lemma amove_orbit : amove D to G x ' (orbit D to G) = fin_rcosets (G ∩ astab D to '{x}) G := sorry
+
+lemma astab_has_one (S : finset rT) : 1 ∈ astab D to S :=
+  mem_inter (!finsubg_has_one)
+  (mem_sep_of_mem !mem_univ (subset_of_forall (take s Hs, mem_sep_of_mem !mem_univ (act1 to D s))))
+
+lemma astab_mul_closed (S : finset rT) : finset_mul_closed_on (astab D to S) :=
+  take x y Hx Hy,
+  begin
+    have Hx1 : ∀ s, s ∈ S → to s x = s, from take s, astab_act to D S x s Hx,
+    have Hy1 : ∀ s, s ∈ S → to s y = s, from take s, astab_act to D S y s Hy,
+    rewrite mem_inter_eq at Hx,
+    rewrite mem_inter_eq at Hy,
+    cases Hx with HxD Hx,
+    cases Hy with HyD Hy,
+    rewrite mem_inter_iff,
+    apply and.intro,
+    apply finsubg_mul_closed D HxD HyD,
+    apply mem_sep_of_mem !mem_univ,
+    apply subset_of_forall,
+    intro s HsS, apply mem_sep_of_mem !mem_univ,
+    rewrite (actMin to D s x y HxD HyD),
+    rewrite (Hx1 s HsS),
+    rewrite (Hy1 s HsS)
+  end
+
+lemma astab_has_inv (S : finset rT) : finset_has_inv (astab D to S) :=
+  take g Hg, astab_of_mem D to S g⁻¹ (finsubg_has_inv D (mem_of_mem_inter_left Hg)) (take s HsS, have Hgs : to s g = s, from astab_act to D S _ _ Hg HsS,
+  begin
+   rewrite -Hgs at {1},
+   rewrite -(actMin to D s g g⁻¹ (mem_of_mem_inter_left Hg) (finsubg_has_inv D (mem_of_mem_inter_left Hg))),
+   have Hobvious : g * g⁻¹ = 1, from sorry, -- TODO
+   rewrite Hobvious,
+   apply act1 to D
+  end)
+
+definition astab_is_finsubg [instance] (S : finset rT) :
+  is_finsubg (astab D to S) := is_finsubg.mk (astab_has_one to D G sGD S) (astab_mul_closed to D G sGD S) (astab_has_inv to D G sGD S)
+
+definition inter_is_finsubg [instance] {G1 : finset aT} {G2 : finset aT} [group_G1 : is_finsubg G1] [group_G2 : is_finsubg G2] : is_finsubg (G1 ∩ G2) := sorry
+
+lemma stab_subset (S : finset rT ) : G ∩ astab D to S ⊆ D :=
+      begin
+        apply (subset.trans finset_inter_subset_left sGD),
+      end
+
+lemma amove_inj (a : rT) : set.inj_on (amove D to G a) (ts (orbit D to G a)) :=
+  begin
+   intro x y Hx Hy Heq,
+   rewrite -mem_eq_mem_to_set at Hx,
+   rewrite -mem_eq_mem_to_set at Hy,
+   rewrite orbitP at Hx,
+   rewrite orbitP at Hy,
+   cases Hx with gx Hgx,
+   cases Hgx with HgxG Hgxax,
+   cases Hy with gy Hgy,
+   cases Hgy with HgyG Hgyay,
+   have Hgxamove : gx ∈ amove D to G a x, from amove_of_to D to HgxG Hgxax,
+   rewrite Heq at Hgxamove,
+   have to a gx = y, from to_of_amove D to HgxG Hgxamove,
+   rewrite [-Hgxax,-this]
+  end
+
+theorem orbit_stabilizer_theorem (a : rT) : card G = card (orbit D to G a) * card (G ∩ astab D to '{a}) :=
+        have finsubg_astab : is_finsubg (astab D to '{a}), from astab_is_finsubg to D G sGD _,
+        have finsubg_inter : is_finsubg (astab_in D to G '{a}), from inter_is_finsubg to D G sGD,
+        calc card G = card (fin_lcosets (astab_in D to G '{a}) G) * card (G ∩ astab D to '{a}) :
+        lagrange_theorem (!finset_inter_subset_left)
+             ...    = card (fin_rcosets (astab_in D to G '{a}) G) * card (G ∩ astab D to '{a}) :
+        begin rewrite (card_rcosets_eq_card_lcosets (astab_in D to G '{a}) G) end
+             ...    = card ((amove D to G a) ' (orbit D to G a)) * card (G ∩ astab D to '{a}) : begin rewrite -(amove_orbit to D G a sGD) end
+             ...    = card ((orbit D to G a)) * card (G ∩ astab D to '{a}) : begin rewrite (card_image_eq_of_inj_on (amove_inj to D G sGD a)) end
+
+
+
+end orbit_stabilizer
 
 end partial_actions
